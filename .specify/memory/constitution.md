@@ -1,22 +1,21 @@
 <!--
   Sync Impact Report
 
-  Version change: 1.0.0 → 2.0.0 (MAJOR — backward-incompatible principle removals/redefinitions)
+  Version change: 2.0.0 → 3.0.0 (MAJOR — backward-incompatible principle removals/redefinitions)
   Modified principles:
-    - I.   "Simplicity over Cleverness" → "Vibe Coding Methodology" (redefined)
-    - II.  "TypeScript Strict Mode" → "User-Centric Data Isolation" (replaced)
-    - III. "No Duplicated Business Logic" → "Client-Side Processing" (replaced)
-    - IV.  "Every Feature Must Be Fully Typed" → "Firestore as Source of Truth" (replaced/merged)
-    - V.   "UI Must Be Responsive" → "Clean Code & Modularity" (replaced)
-    - VI.  "Accessibility is Required" → removed
-    - VII. "Firestore is the Source of Truth" → merged into principle IV
-    - VIII."Graph is Derived Data and Must Never Be Persisted" → subsumed by Client-Side Processing
-    - IX.  "Every API Call Must Be Cached" → removed
-    - X.   "Every Feature Must Include Automated Tests" → removed
-  Added sections: Security & Deployment Rules (new Section 3)
-  Removed sections: State, Auth & Infrastructure (superseded); API Caching; Accessibility; Automated Tests
-  Templates requiring updates: None — all templates use generic references
-  Follow-up TODOs: None
+    - I.   "Vibe Coding Methodology" — redefined to subsume Clean Code & Modularity
+    - II.  "User-Centric Data Isolation" → "Local-First Data" (replaced)
+    - III. "Client-Side Processing" — redefined (Firestore backend dependency removed)
+    - IV.  "Firestore as Source of Truth" — removed
+    - V.   "Clean Code & Modularity" — subsumed into Principle I
+  Added sections: Data Privacy under Security & Agent Rules
+  Removed sections: Authentication & Authorization; Backend & APIs; Firestore technical standards
+  Templates requiring updates: ✅ plan-template.md (no changes needed — generic placeholders)
+                              ✅ spec-template.md (no changes needed)
+                              ✅ tasks-template.md (no changes needed)
+                              ✅ checklist-template.md (no changes needed)
+  Follow-up TODOs: None — all tokens resolved. .env.example still references Firebase vars;
+                   developer should update if Firebase removed from project.
 -->
 
 # DoramaActors Constitution
@@ -29,37 +28,29 @@ Prioritize functional prototypes and rapid iteration. Code MUST be
 clean, modular, and easy to read. Pragmatism over perfection —
 ship working features first, refine iteratively. Complexity MUST be
 justified and kept minimal. If a solution is not immediately
-understandable, it is too complex.
+understandable, it is too complex. Composition over inheritance.
+Feature-based folder structure with domain-driven naming. No
+duplicated business logic — shared logic MUST be extracted into
+composable utilities, hooks, or domain services.
 
-### II. User-Centric Data Isolation
+### II. Local-First Data
 
-Every user owns their own isolated graph data (Doramas watched,
-Actors known). Firestore security rules MUST enforce per-UID access
-at the document level. No user, endpoint, or query MAY access
-another user's data. Data boundaries are non-negotiable.
+All user data (Doramas watched, Actors known) is strictly stored in
+the browser's `localStorage`. No external cloud databases, backends,
+or third-party persistence services are permitted. The browser is
+the sole data store. Data MUST be read and written via custom hooks
+that abstract `localStorage` operations. The application MUST
+gracefully handle `localStorage` unavailability (quota exceeded,
+private browsing restrictions).
 
 ### III. Client-Side Processing
 
-Graph visualization and layout computation MUST happen entirely on
-the client-side using React. No server-side rendering, backend
-processing, or persistence of graph state is permitted. The browser
-is the sole computation target. Graph state (zoom, pan, layout) is
-ephemeral UI state only.
-
-### IV. Firestore as Source of Truth
-
-All persisted application state MUST be stored in Firestore.
-Firestore is the authoritative store — no local-first or dual-storage
-patterns. Security rules MUST enforce per-UID data isolation on
-every document read and write. Offline persistence MAY be enabled
-for resilience but Firestore remains the single source of truth.
-
-### V. Clean Code & Modularity
-
-Code MUST be clean, modular, and easy to read. Prefer composition
-over inheritance. Feature-based folder structure with domain-driven
-naming. No duplicated business logic. Shared logic MUST be extracted
-into composable utilities, hooks, or domain services.
+Graph visualization, layout computation, and data persistence happen
+entirely on the client-side. No server-side rendering, backend
+processing, or server-side persistence of graph state is permitted.
+Graph state (zoom, pan, layout, node positions) is ephemeral UI
+state only — MUST NOT be persisted. The browser is the sole
+computation and rendering target.
 
 ## Technical Standards
 
@@ -76,58 +67,41 @@ into composable utilities, hooks, or domain services.
 - Design direction: modern, minimalist, clean UI inspired by
   **industrial dashboards** — high contrast, clear typography,
   functional layout without unnecessary clutter.
-- CSS custom properties MAY be used for theme tokens but MUST be
-  defined in the Tailwind config.
 
 ### State Management
 
-- React Hooks and Context API are the default approach.
-- Zustand MAY be adopted if global state complexity increases to a
-  point where Context becomes unwieldy. The decision MUST be
-  justified in the PR.
-- No other state libraries (Redux, TanStack Query) are permitted
-  unless a specific need is documented and approved.
+- React Hooks and custom hooks for `localStorage` synchronization.
+- No external state management libraries are required for data
+  persistence. Zustand or Context MAY be used for ephemeral UI state
+  (e.g., selected node, sidebar open/closed) if complexity warrants.
 
 ### Graph Library
 
-- `react-force-graph-2d` or `react-force-graph-3d` is the graph
-  rendering library. Choice depends on performance and visual
-  requirements.
+- `react-force-graph-2d` is the graph rendering library.
 - Graph state (node positions, edge routing, viewport) is ephemeral
   client-side UI state only — MUST NOT be persisted.
 
-## Security & Deployment Rules
+## Security & Agent Rules (STRICT)
 
 ### Environment Variables
 
 AI agents are strictly **PROHIBITED** from reading, accessing,
 modifying, or querying `.env` configuration files. The human
-developer handles all secret key injections manually. This rule
-applies to all automation, scripts, and tooling.
+developer handles all secret key injections (TMDB API key) manually.
+This rule applies to all automation, scripts, and tooling.
 
-### Authentication & Authorization
+### Data Privacy
 
-- Firebase Authentication with Google Provider MUST be used.
-- Auth state MUST be consumed via a React Context provider.
-- Protected routes MUST redirect unauthenticated users to login.
-- All Firestore reads/writes MUST be protected by security rules
-  ensuring users can only access their own UID's data.
+Since all data resides in `localStorage`, the application MUST
+provide mechanisms for users to clear their data and optionally
+export/import JSON backups. No user data leaves the browser except
+via explicit user-initiated export or TMDB API search requests.
 
-### Backend & APIs
-
-- No custom backend server until absolutely necessary.
-- Firestore and Firebase Functions are the only approved backend
-  surfaces.
-- TMDB (The Movie Database) is the primary external API — all calls
-  MUST be proxied through a service layer with rate limiting and
-  error normalization.
-
-### Deployment
+## Deployment
 
 - Netlify is the sole deployment platform.
-- Deploy previews MUST be generated for every PR.
-- Build scripts MUST include a `_redirects` file for React Router
-  SPA routing.
+- Build scripts MUST be simple and optimized for a static SPA.
+- A `_redirects` file MUST be included for React Router SPA routing.
 - Environment variables MUST be managed in the Netlify dashboard.
 
 ## Governance
@@ -158,4 +132,4 @@ discussions MUST reference the constitution for compliance.
 - Complexity MUST be justified in PR descriptions.
 - Non-compliant PRs MUST be blocked until resolved.
 
-**Version**: 2.0.0 | **Ratified**: 2026-07-03 | **Last Amended**: 2026-07-03
+**Version**: 3.0.0 | **Ratified**: 2026-07-03 | **Last Amended**: 2026-07-03

@@ -4,6 +4,30 @@ import type { Node, Link, GraphDocument } from "../types/graph";
 
 const STORAGE_KEY = "dorama_graph_data";
 
+function sanitizeLinks(links: Link[]): Link[] {
+  return links.map((link) => ({
+    ...link,
+    source: typeof link.source === "object" && link.source !== null
+      ? (link.source as any).id ?? String(link.source)
+      : link.source,
+    target: typeof link.target === "object" && link.target !== null
+      ? (link.target as any).id ?? String(link.target)
+      : link.target,
+  }));
+}
+
+function cleanNodes(nodes: Node[]): Node[] {
+  return nodes.map((node) => {
+    const cleaned = { ...node } as any;
+    delete cleaned.x;
+    delete cleaned.y;
+    delete cleaned.vx;
+    delete cleaned.vy;
+    delete cleaned.index;
+    return cleaned as Node;
+  });
+}
+
 function loadFromStorage(): GraphDocument {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -14,7 +38,11 @@ function loadFromStorage(): GraphDocument {
       localStorage.removeItem(STORAGE_KEY);
       return { nodes: [], links: [], updatedAt: 0 };
     }
-    return parsed;
+    return {
+      nodes: cleanNodes(parsed.nodes),
+      links: sanitizeLinks(parsed.links),
+      updatedAt: parsed.updatedAt,
+    };
   } catch (e) {
     console.warn("Failed to parse graph data from localStorage", e);
     localStorage.removeItem(STORAGE_KEY);
@@ -24,7 +52,11 @@ function loadFromStorage(): GraphDocument {
 
 function saveToStorage(nodes: Node[], links: Link[]): boolean {
   try {
-    const doc: GraphDocument = { nodes, links, updatedAt: Date.now() };
+    const doc: GraphDocument = {
+      nodes: cleanNodes(nodes),
+      links: sanitizeLinks(links),
+      updatedAt: Date.now(),
+    };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(doc));
     return true;
   } catch (e) {

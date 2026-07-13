@@ -12,7 +12,7 @@ export function GraphCanvas() {
   const actorCount = nodes.filter((n) => n.group === "actor").length;
 
   return (
-    <main className="relative flex flex-1 items-center justify-center bg-gray-950">
+    <main id="graph-canvas" className="relative flex flex-1 items-center justify-center bg-gray-950">
       {storageError && (
         <div style={{ animation: "fadeIn 0.2s ease-out" }} className="absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-xl border border-red-500/20 bg-red-950/80 px-5 py-3 text-sm text-red-400 shadow-2xl shadow-red-950/50 backdrop-blur-xl">
           {storageError}

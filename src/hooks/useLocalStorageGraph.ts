@@ -98,12 +98,18 @@ export function useLocalStorageGraph() {
     saveToStorage(current.nodes, current.links);
   };
 
+  const clearGraphData = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    useGraphStore.getState().clearGraphData();
+  };
+
   return {
     nodes,
     links,
     highlightedNodes,
     addDorama,
     removeDorama,
+    clearGraphData,
     clearHighlights,
     isEmpty: nodes.length === 0,
     storageError,

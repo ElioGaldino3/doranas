@@ -1,13 +1,14 @@
-import { X, Film, Users } from "lucide-react";
+import { X, Film, Users, FileDown, Trash2 } from "lucide-react";
 import { SearchInput } from "../search/SearchInput";
 import { useLocalStorageGraph } from "../../hooks/useLocalStorageGraph";
+import { exportGraphToPdf } from "../../utils/exportPdf";
 
 interface SidebarProps {
   onClose?: () => void;
 }
 
 export function Sidebar({ onClose }: SidebarProps) {
-  const { nodes } = useLocalStorageGraph();
+  const { nodes, links, clearGraphData, isEmpty } = useLocalStorageGraph();
   const doramaCount = nodes.filter((n) => n.group === "dorama").length;
   const actorCount = nodes.filter((n) => n.group === "actor").length;
 
@@ -63,6 +64,32 @@ export function Sidebar({ onClose }: SidebarProps) {
         <p className="text-center text-[11px] leading-relaxed text-gray-600">
           Click a dorama to see shared actors. Click an actor to search images.
         </p>
+      </div>
+
+      <div className="border-t border-white/[0.06] pt-4">
+        <div className="space-y-2">
+          <button
+            onClick={() => exportGraphToPdf(nodes, links)}
+            disabled={isEmpty}
+            className="flex w-full items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-gray-400 transition-all duration-200 hover:border-amber-500/30 hover:bg-amber-950/20 hover:text-amber-400 disabled:opacity-30 disabled:hover:border-white/[0.06] disabled:hover:bg-white/[0.03] disabled:hover:text-gray-400"
+          >
+            <FileDown className="h-4 w-4" />
+            Exportar PDF
+          </button>
+
+          <button
+            onClick={() => {
+              if (window.confirm("Tem certeza? Todos os dados do gráfico serão perdidos.")) {
+                clearGraphData();
+              }
+            }}
+            disabled={isEmpty}
+            className="flex w-full items-center gap-2.5 rounded-xl border border-red-500/15 bg-red-950/20 px-4 py-2.5 text-sm font-medium text-red-400/80 transition-all duration-200 hover:border-red-500/30 hover:bg-red-950/40 hover:text-red-400 disabled:opacity-30 disabled:hover:border-red-500/15 disabled:hover:bg-red-950/20 disabled:hover:text-red-400/80"
+          >
+            <Trash2 className="h-4 w-4" />
+            Limpar Dados
+          </button>
+        </div>
       </div>
     </div>
   );

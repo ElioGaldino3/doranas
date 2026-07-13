@@ -164,6 +164,19 @@ description: "Task list for implementing localStorage persistence in the Local D
 - [X] T034 Add `removeDorama` to `src/hooks/useLocalStorageGraph.ts` — call store action then persist to localStorage
 - [X] T035 Wire `onRemoveDorama` prop in drawer and `GraphCanvas.tsx` — pass `removeDorama` from hook to drawer button
 
+---
+
+## Phase 10: PDF Export & Data Reset
+
+**Purpose**: Add PDF export of graph visualization and a reset/clear-all button in the sidebar menu.
+
+- [X] T036 Install `html2canvas` and `jspdf` dependencies for PDF generation
+- [X] T037 Create `src/utils/exportPdf.ts` — captures the graph canvas via html2canvas, generates a landscape A4 PDF with title, date, graph image, and node/link count footer
+- [X] T038 [P] Add `clearGraphData` action to `src/store/graphStore.ts` — resets nodes, links, and highlightedNodes to empty
+- [X] T039 [P] Add `clearGraphData` to `src/hooks/useLocalStorageGraph.ts` — removes localStorage key and resets store
+- [X] T040 Update `src/components/layout/GraphCanvas.tsx` — add `id="graph-canvas"` to main container for html2canvas targeting
+- [X] T041 Update `src/components/layout/Sidebar.tsx` — add "Exportar PDF" button (FileDown icon, amber hover, disabled when empty) and "Limpar Dados" button (Trash2 icon, red destructive style, confirm dialog)
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

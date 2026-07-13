@@ -21,6 +21,7 @@ interface GraphState {
   setGraph: (nodes: Node[], links: Link[]) => void;
   addDorama: (nodes: Node[], links: Link[]) => void;
   removeDorama: (doramaId: string) => void;
+  clearGraphData: () => void;
   setHoveredNode: (id: string | null) => void;
   clearHighlights: () => void;
 }
@@ -84,6 +85,8 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
     set({ nodes: nodesAfter, links: linksAfter });
   },
+
+  clearGraphData: () => set({ nodes: [], links: [], highlightedNodes: new Set() }),
 
   setHoveredNode: (id) => set({ hoveredNode: id }),
 

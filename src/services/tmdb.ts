@@ -6,7 +6,7 @@ function apiKey(): string {
 }
 
 function fullUrl(path: string, params: Record<string, string> = {}): string {
-  const search = new URLSearchParams({ language: "en-US", ...params, api_key: apiKey() });
+  const search = new URLSearchParams({ language: "pt-BR", ...params, api_key: apiKey() });
   return `${TMDB_BASE}${path}?${search}`;
 }
 

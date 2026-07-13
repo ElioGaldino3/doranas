@@ -92,11 +92,18 @@ export function useLocalStorageGraph() {
     return current.highlightedNodes.size;
   };
 
+  const removeDorama = (doramaId: string) => {
+    useGraphStore.getState().removeDorama(doramaId);
+    const current = useGraphStore.getState();
+    saveToStorage(current.nodes, current.links);
+  };
+
   return {
     nodes,
     links,
     highlightedNodes,
     addDorama,
+    removeDorama,
     clearHighlights,
     isEmpty: nodes.length === 0,
     storageError,

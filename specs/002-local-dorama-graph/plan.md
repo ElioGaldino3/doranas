@@ -84,6 +84,8 @@ src/
 ├── main.tsx
 ├── App.tsx
 ├── components/
+│   ├── drawer/
+│   │   └── DoramaDetailsDrawer.tsx # NEW: Dorama details drawer with cross-ref actors
 │   ├── layout/
 │   │   ├── Sidebar.tsx         # Search input + stats widget
 │   │   └── GraphCanvas.tsx     # Graph container

@@ -70,6 +70,19 @@ Once doramas are added, the user explores their graph by hovering over nodes to 
 2. **Given** a graph with multiple actors, **When** the user hovers over a Dorama node, **Then** all connected Actor nodes and edges remain highlighted while unconnected nodes dim.
 3. **Given** the graph is rendered, **When** the user looks at the canvas, **Then** Dorama nodes are visually larger and use an accent color, while Actor nodes are smaller and use a neutral color.
 
+### User Story 5 - Dorama Details Drawer with Cross-Reference (Priority: P1)
+
+When the user clicks a Dorama node, a drawer slides in showing all actors from that dorama who also appear in other tracked shows, making cross-references easy to browse.
+
+**Independent Test**: Add two doramas sharing an actor (e.g., Hyun Bin in both), click the first dorama, and verify the drawer shows Hyun Bin with a link to the second dorama.
+
+**Acceptance Scenarios**:
+
+1. **Given** the graph has multiple doramas with shared actors, **When** the user clicks a Dorama node, **Then** a drawer slides from the right showing the dorama title and a "Atores já assistidos" section.
+2. **Given** a shared actor exists, **When** viewing the drawer, **Then** the actor's profile photo, name, and a bullet list of other doramas they appear in is displayed (excluding the current dorama).
+3. **Given** the clicked dorama has no actors shared with other shows, **When** viewing the drawer, **Then** a "Nenhum ator em comum" message is displayed.
+4. **Given** the drawer is open, **When** clicking outside or pressing the close button, **Then** the drawer slides out and closes.
+
 ### Edge Cases
 
 - What happens when localStorage is full or unavailable? The system shows a clear error message explaining the limitation.

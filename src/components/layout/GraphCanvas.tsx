@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { ForceGraph } from "../graph/ForceGraph";
+import { DoramaDetailsDrawer } from "../drawer/DoramaDetailsDrawer";
 import { useLocalStorageGraph } from "../../hooks/useLocalStorageGraph";
 import { Search, Film, Users } from "lucide-react";
+import type { Node } from "../../types/graph";
 
 export function GraphCanvas() {
-  const { isEmpty, storageError, nodes } = useLocalStorageGraph();
+  const { isEmpty, storageError, nodes, links, removeDorama } = useLocalStorageGraph();
+  const [selectedDorama, setSelectedDorama] = useState<Node | null>(null);
   const doramaCount = nodes.filter((n) => n.group === "dorama").length;
   const actorCount = nodes.filter((n) => n.group === "actor").length;
 
@@ -29,7 +33,7 @@ export function GraphCanvas() {
           <span className="h-3 w-px bg-white/[0.06]" />
           <span className="flex items-center gap-1.5">
             <Search className="h-3 w-3 text-gray-600" />
-            Click an actor to search images
+            Click a dorama to see details, actor to search images
           </span>
         </div>
       )}
@@ -47,7 +51,17 @@ export function GraphCanvas() {
           </p>
         </div>
       ) : (
-        <ForceGraph />
+        <ForceGraph onDoramaClick={(node) => setSelectedDorama(node)} />
+      )}
+
+      {selectedDorama && (
+        <DoramaDetailsDrawer
+          doramaNode={selectedDorama}
+          allNodes={nodes}
+          allLinks={links}
+          onClose={() => setSelectedDorama(null)}
+          onRemoveDorama={(id) => removeDorama(id)}
+        />
       )}
     </main>
   );

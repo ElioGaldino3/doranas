@@ -41,9 +41,9 @@ Side effects:
 
 ### TMDB API v3
 
-- `GET /search/tv?query={title}&language=en-US`
-- `GET /find/{imdbId}?external_source=imdb_id`
-- `GET /tv/{seriesId}/credits?language=en-US`
+- `GET /search/tv?query={title}&language=pt-BR`
+- `GET /find/{imdbId}?external_source=imdb_id&language=pt-BR`
+- `GET /tv/{seriesId}/credits?language=pt-BR`
 
 All requests require `api_key` query parameter sourced from
 `import.meta.env.VITE_TMDB_API_KEY`.

@@ -135,6 +135,35 @@ description: "Task list for implementing localStorage persistence in the Local D
 
 ---
 
+---
+
+## Phase 8: Corrections & New Features (Dorama Details Drawer + pt-BR)
+
+**Purpose**: Fix TMDB API language to return Portuguese results and add the Dorama Details Drawer for cross-reference browsing.
+
+- [X] T025 [P] Fix TMDB API language: change default from `en-US` to `pt-BR` in `src/services/tmdb.ts` — all endpoints inherit via `fullUrl()`
+- [X] T026 [P] Update `contracts/README.md` to reflect `language=pt-BR` in TMDB API docs
+- [X] T027 Create `src/components/drawer/DoramaDetailsDrawer.tsx` — drawer component showing cross-referenced actors for a clicked dorama:
+  - Slides from the right with glassmorphism styling
+  - Header with clicked dorama title
+  - "Atores já assistidos" section listing actors with >1 graph connection
+  - Each actor card shows TMDB profile photo, name, and bullet list of other doramas
+- [X] T028 Update `src/components/graph/ForceGraph.tsx` — add `onDoramaClick` prop, route dorama node clicks to callback, keep Google Images for actor clicks
+- [X] T029 Update `src/components/layout/GraphCanvas.tsx` — manage `selectedDorama` state, pass `onDoramaClick` to ForceGraph, render `DoramaDetailsDrawer`
+- [X] T030 Update `src/components/layout/Sidebar.tsx` — update hint text to mention dorama click
+- [X] T031 Update spec docs: `spec.md` (add User Story 5), `plan.md` (add drawer to structure)
+
+---
+
+## Phase 9: Cross-Reference Bugfix, Image Fix & Remove Dorama Feature
+
+**Purpose**: Fix broken cross-reference logic in drawer (links mutated by d3-force to object refs), fix actor profile images, and add cascade dorama removal.
+
+- [X] T032 Fix `src/components/drawer/DoramaDetailsDrawer.tsx` — rewrite `computeCrossReferences` with `getLinkId()` helper that handles both string and object `source`/`target` (d3-force mutation), fix image src to use TMDB w200 thumbnails, add placeholder fallback when `imgUrl` is null
+- [X] T033 Add `removeDorama` action to `src/store/graphStore.ts` — cascade removal: delete dorama node, delete its links, clean up orphan actors with no remaining links
+- [X] T034 Add `removeDorama` to `src/hooks/useLocalStorageGraph.ts` — call store action then persist to localStorage
+- [X] T035 Wire `onRemoveDorama` prop in drawer and `GraphCanvas.tsx` — pass `removeDorama` from hook to drawer button
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

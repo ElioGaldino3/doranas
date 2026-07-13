@@ -61,7 +61,7 @@ export function Sidebar({ onClose }: SidebarProps) {
 
       <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] px-4 py-3">
         <p className="text-center text-[11px] leading-relaxed text-gray-600">
-          Click an actor node to search their images on Google.
+          Click a dorama to see shared actors. Click an actor to search images.
         </p>
       </div>
     </div>

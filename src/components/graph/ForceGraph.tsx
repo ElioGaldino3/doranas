@@ -24,7 +24,11 @@ function collisionRadius(node: Node) {
   return size + labelHeight + 4;
 }
 
-export function ForceGraph() {
+interface ForceGraphProps {
+  onDoramaClick?: (node: Node) => void;
+}
+
+export function ForceGraph({ onDoramaClick }: ForceGraphProps) {
   const { nodes, links, hoveredNode, highlightedNodes, setHoveredNode, clearHighlights } =
     useGraphStore();
   const fgRef = useRef<any>(null);
@@ -139,10 +143,13 @@ export function ForceGraph() {
   );
 
   const handleNodeClick = useCallback((node: any) => {
-    if (node.group !== "actor") return;
-    const url = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(node.label)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  }, []);
+    if (node.group === "dorama") {
+      onDoramaClick?.(node as Node);
+    } else {
+      const url = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(node.label)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  }, [onDoramaClick]);
 
   return (
     <div ref={containerRef} className="h-full w-full">

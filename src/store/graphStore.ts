@@ -1,6 +1,18 @@
 import { create } from "zustand";
 import type { Node, Link } from "../types/graph";
 
+function linkSourceId(link: Link): string {
+  return typeof link.source === "object" && link.source !== null
+    ? (link.source as any).id ?? String(link.source)
+    : link.source;
+}
+
+function linkTargetId(link: Link): string {
+  return typeof link.target === "object" && link.target !== null
+    ? (link.target as any).id ?? String(link.target)
+    : link.target;
+}
+
 interface GraphState {
   nodes: Node[];
   links: Link[];
@@ -8,6 +20,7 @@ interface GraphState {
   highlightedNodes: Set<string>;
   setGraph: (nodes: Node[], links: Link[]) => void;
   addDorama: (nodes: Node[], links: Link[]) => void;
+  removeDorama: (doramaId: string) => void;
   setHoveredNode: (id: string | null) => void;
   clearHighlights: () => void;
 }
@@ -42,11 +55,10 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       }
     }
 
-    const linkKey = (l: Link) => `${l.source}-${l.target}`;
-    const existingLinkKeys = new Set(existingLinks.map(linkKey));
+    const existingLinkKeys = new Set(existingLinks.map((l) => `${l.source}-${l.target}`));
     const mergedLinks = [...existingLinks];
     for (const l of newLinks) {
-      if (!existingLinkKeys.has(linkKey(l))) {
+      if (!existingLinkKeys.has(`${l.source}-${l.target}`)) {
         mergedLinks.push(l);
       }
     }
@@ -56,6 +68,21 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       links: mergedLinks,
       highlightedNodes: crossReferenced,
     });
+  },
+
+  removeDorama: (doramaId) => {
+    const { nodes: existing, links: existingLinks } = get();
+
+    const linksAfter = existingLinks.filter((l) => linkTargetId(l) !== doramaId);
+
+    const nodesAfterDorama = existing.filter((n) => n.id !== doramaId);
+
+    const actorIdsWithLinks = new Set(linksAfter.map(linkSourceId));
+    const nodesAfter = nodesAfterDorama.filter(
+      (n) => n.group !== "actor" || actorIdsWithLinks.has(n.id),
+    );
+
+    set({ nodes: nodesAfter, links: linksAfter });
   },
 
   setHoveredNode: (id) => set({ hoveredNode: id }),

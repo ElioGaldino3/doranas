@@ -1,6 +1,5 @@
 import { SCHEMA_VERSION } from "../types/models";
 import type { DoramaDocument, DoramaRecord } from "../types/models";
-import type { Node, Link } from "../types/graph";
 
 export const STORAGE_KEY = "dorama_graph_data";
 export const BACKUP_KEY = "dorama_graph_backup_v1";
@@ -20,10 +19,23 @@ function defaultStorage(): StorageLike {
   };
 }
 
+/** Formatos v1 (grafo) lidos do storage — a migração ainda precisa deles. */
+export interface V1Node {
+  id: string;
+  label: string;
+  group: "dorama" | "actor";
+  imgUrl: string;
+}
+
+export interface V1Link {
+  source: string;
+  target: string;
+}
+
 /** Formato v1 (grafo) lido do storage. */
 export interface V1GraphDocument {
-  nodes: Node[];
-  links: Link[];
+  nodes: V1Node[];
+  links: V1Link[];
   updatedAt: number;
 }
 

@@ -1,5 +1,4 @@
 import jsPDF from "jspdf";
-import type { Node, Link } from "../types/graph";
 
 /**
  * Dados de entrada do exportador, já desacoplados do modelo de grafo.
@@ -173,42 +172,4 @@ export function buildDoramaPdf(doramas: ExportDorama[]): jsPDF {
 
   drawFooter(pdf, totalActors, y);
   return pdf;
-}
-
-/**
- * Adaptador temporário que converte o modelo de grafo v1 (Node/Link) para a
- * lista v2 e exporta. Mantido até a Fase 4 substituir o Sidebar pelo catálogo.
- */
-export function exportGraphToPdf(nodes: Node[], links: Link[]): void {
-  const doramaNodes = nodes.filter((n) => n.group === "dorama");
-  // Comportamento tolerante (compat com o Sidebar v1): sem doramas, não faz nada.
-  if (doramaNodes.length === 0) {
-    return;
-  }
-
-  // Conta atores por dorama considerando links no formato do grafo v1
-  // (actor -> dorama): o target do link é o id do dorama.
-  const actorCountByDorama = new Map<string, number>();
-  for (const link of links) {
-    const target = linkId(link.target);
-    actorCountByDorama.set(target, (actorCountByDorama.get(target) ?? 0) + 1);
-  }
-
-  const doramas: ExportDorama[] = doramaNodes.map((node) => ({
-    id: node.id,
-    title: node.label,
-    year: undefined,
-    actorCount: actorCountByDorama.get(node.id) ?? 0,
-  }));
-
-  const pdf = buildDoramaPdf(doramas);
-  pdf.save("doramas-assistidos.pdf");
-}
-
-/** Normaliza o target de um link (string ou objeto com `id`). */
-function linkId(ref: string | { id?: unknown }): string {
-  if (typeof ref === "object" && ref !== null && ref.id != null) {
-    return String(ref.id);
-  }
-  return String(ref);
 }

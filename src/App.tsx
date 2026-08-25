@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import { useAppInit } from "./hooks/useAppInit";
+import { useAutoRehydrate } from "./hooks/useAutoRehydrate";
 import { useCatalogStore } from "./store/catalogStore";
 import { InitScreen } from "./components/init/InitScreen";
 import { Header } from "./components/layout/Header";
@@ -11,6 +12,9 @@ import { AtorDetailScreen } from "./components/catalog/AtorDetailScreen";
 export default function App() {
   const init = useAppInit();
   const screen = useCatalogStore((s) => s.screen);
+
+  // Re-hidrata em background os doramas pendentes (adds manuais) ao carregar.
+  useAutoRehydrate();
 
   if (init.loading) {
     return <InitScreen progress={init.progress} error={init.error} />;

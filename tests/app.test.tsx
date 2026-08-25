@@ -11,6 +11,12 @@ vi.mock("../src/hooks/useAppInit", () => ({
   useAppInit: vi.fn(),
 }));
 
+// A re-hidratação em background é enfileirada automaticamente; nos testes de
+// App ela é desativada para não disparar rede real.
+vi.mock("../src/hooks/useAutoRehydrate", () => ({
+  useAutoRehydrate: vi.fn(),
+}));
+
 const mockUseAppInit = vi.mocked(useAppInit);
 
 const dorama = (id: string, title?: string): DoramaRecord => ({

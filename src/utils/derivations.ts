@@ -185,3 +185,20 @@ export function doramaFromTmdb(
     cast: applyProtagonistHeuristic(tmdbCastToMembers(cast, toImageUrl)),
   };
 }
+
+/**
+ * Enriquece um dorama com o elenco do Wikidata (re-hidratação de adds manuais,
+ * que são TMDB-only). Idempotente: `mergeCast` deduplica por personId/QID, logo
+ * re-executar sobre um dorama já enriquecido não duplica atores.
+ */
+export function enrichDoramaWithWikidata(
+  dorama: DoramaRecord,
+  qid: string,
+  wikiRows: WikidataCastRow[],
+): DoramaRecord {
+  return {
+    ...dorama,
+    wikidataId: qid,
+    cast: applyProtagonistHeuristic(mergeCast(dorama.cast, wikiRows)),
+  };
+}

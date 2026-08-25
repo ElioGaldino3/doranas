@@ -1,6 +1,8 @@
-import { ArrowLeft, Film, Star, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Film, Loader2, Sparkles, Star, Trash2 } from "lucide-react";
 import { useCatalogStore } from "../../store/catalogStore";
 import { useCatalogActions } from "../../hooks/useCatalogActions";
+import { useRehydrate } from "../../hooks/useRehydrate";
 import { otherDoramasOf } from "../../utils/derivations";
 import { thumbUrl } from "../../utils/images";
 import type { CastMember, DoramaRecord } from "../../types/models";
@@ -10,6 +12,8 @@ export function DoramaDetailScreen({ doramaId }: { doramaId: string }) {
   const doramas = useCatalogStore((s) => s.doramas);
   const navigate = useCatalogStore((s) => s.navigate);
   const { removeDorama } = useCatalogActions();
+  const { rehydrateOne, busy: rehydrating, error: rehydrateError } = useRehydrate();
+  const [enrichedMsg, setEnrichedMsg] = useState<string | null>(null);
   const dorama = doramas.find((d) => d.id === doramaId);
 
   if (!dorama) {
@@ -30,6 +34,15 @@ export function DoramaDetailScreen({ doramaId }: { doramaId: string }) {
     if (window.confirm(`Remover "${dorama.title}" do catálogo?`)) {
       removeDorama(dorama.id);
       navigate({ name: "doramas" });
+    }
+  };
+
+  const handleEnrich = async () => {
+    setEnrichedMsg(null);
+    const n = await rehydrateOne(dorama.id);
+    if (n > 0) {
+      setEnrichedMsg("Elenco enriquecido com o Wikidata.");
+      setTimeout(() => setEnrichedMsg(null), 5000);
     }
   };
 
@@ -67,12 +80,44 @@ export function DoramaDetailScreen({ doramaId }: { doramaId: string }) {
           {dorama.overview && (
             <p className="mt-3 text-sm leading-relaxed text-gray-400">{dorama.overview}</p>
           )}
-          <button
-            onClick={handleRemove}
-            className="mt-5 flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-950/30 px-4 py-2.5 text-sm font-medium text-red-400 transition-all duration-200 hover:border-red-500/40 hover:bg-red-950/50 hover:text-red-300"
-          >
-            <Trash2 className="h-4 w-4" /> Remover Dorama
-          </button>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {dorama.wikidataId == null && (
+              <button
+                onClick={handleEnrich}
+                disabled={rehydrating}
+                className="flex items-center gap-2 rounded-xl border border-sky-500/20 bg-sky-950/30 px-4 py-2.5 text-sm font-medium text-sky-400 transition-all duration-200 hover:border-sky-500/40 hover:bg-sky-950/50 hover:text-sky-300 disabled:opacity-40"
+              >
+                {rehydrating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                Enriquecer elenco (Wikidata)
+              </button>
+            )}
+            <button
+              onClick={handleRemove}
+              className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-950/30 px-4 py-2.5 text-sm font-medium text-red-400 transition-all duration-200 hover:border-red-500/40 hover:bg-red-950/50 hover:text-red-300"
+            >
+              <Trash2 className="h-4 w-4" /> Remover Dorama
+            </button>
+          </div>
+          {enrichedMsg && (
+            <p
+              style={{ animation: "fadeIn 0.2s ease-out" }}
+              className="mt-3 text-xs text-emerald-400"
+            >
+              {enrichedMsg}
+            </p>
+          )}
+          {rehydrateError && (
+            <p
+              style={{ animation: "fadeIn 0.2s ease-out" }}
+              className="mt-3 text-xs text-red-400"
+            >
+              {rehydrateError}
+            </p>
+          )}
         </div>
       </div>
 

@@ -19,6 +19,11 @@ export function useCatalogActions() {
     persist();
   };
 
+  const updateDorama = (dorama: DoramaRecord): void => {
+    useCatalogStore.getState().updateDorama(dorama);
+    persist();
+  };
+
   const removeDorama = (doramaId: string): void => {
     useCatalogStore.getState().removeDorama(doramaId);
     persist();
@@ -29,5 +34,5 @@ export function useCatalogActions() {
     persist();
   };
 
-  return { addDorama, removeDorama, clearAll };
+  return { addDorama, updateDorama, removeDorama, clearAll };
 }

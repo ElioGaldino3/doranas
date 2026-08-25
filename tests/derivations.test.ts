@@ -7,6 +7,7 @@ import {
   otherDoramasOf,
   doramasOfPerson,
   doramaFromTmdb,
+  enrichDoramaWithWikidata,
 } from "../src/utils/derivations";
 import type { CastMember, DoramaRecord } from "../src/types/models";
 import type { CastResult, SeriesDetails } from "../src/types/tmdb";
@@ -146,5 +147,45 @@ describe("doramaFromTmdb", () => {
   it("year null quando não há first_air_date", () => {
     const rec = doramaFromTmdb(details({ first_air_date: null }), cast4);
     expect(rec.year).toBeNull();
+  });
+});
+
+describe("enrichDoramaWithWikidata", () => {
+  const base: DoramaRecord = {
+    id: "42",
+    title: "Dorama",
+    year: 2020,
+    addedAt: 1,
+    wikidataId: null,
+    cast: [member("1", 0), member("2", 1)],
+  };
+  const wikiRows: WikidataCastRow[] = [
+    { qid: "Q1", name: "Ator 1", tmdbPersonId: "1" },
+    { qid: "Q99", name: "Novo do Wikidata" },
+  ];
+
+  it("seta wikidataId, enriquece membros TMDB e adiciona ator só-Wikidata", () => {
+    const out = enrichDoramaWithWikidata(base, "Q42", wikiRows);
+    expect(out.wikidataId).toBe("Q42");
+    expect(out.cast).toHaveLength(3);
+    expect(out.cast.find((c) => c.personId === "1")?.wikidataId).toBe("Q1");
+    expect(out.cast.find((c) => c.personId === "Q99")).toMatchObject({
+      order: null,
+      protagonist: false,
+    });
+  });
+
+  it("é idempotente — re-executar não duplica atores", () => {
+    const once = enrichDoramaWithWikidata(base, "Q42", wikiRows);
+    const twice = enrichDoramaWithWikidata(once, "Q42", wikiRows);
+    expect(twice.cast).toHaveLength(3);
+    expect(twice.wikidataId).toBe("Q42");
+  });
+
+  it("não muta o input", () => {
+    const out = enrichDoramaWithWikidata(base, "Q42", wikiRows);
+    expect(base.wikidataId).toBeNull();
+    expect(base.cast).toHaveLength(2);
+    expect(out).not.toBe(base);
   });
 });

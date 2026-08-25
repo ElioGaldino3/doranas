@@ -1,6 +1,8 @@
-import { Film, FileDown, Trash2, Star } from "lucide-react";
+import { useState } from "react";
+import { Film, FileDown, Loader2, Sparkles, Star, Trash2 } from "lucide-react";
 import { useCatalogStore } from "../../store/catalogStore";
 import { useCatalogActions } from "../../hooks/useCatalogActions";
+import { useRehydrate } from "../../hooks/useRehydrate";
 import { buildDoramaPdf, type ExportDorama } from "../../utils/exportPdf";
 import type { DoramaRecord } from "../../types/models";
 
@@ -9,6 +11,10 @@ export function DoramasScreen() {
   const doramas = useCatalogStore((s) => s.doramas);
   const navigate = useCatalogStore((s) => s.navigate);
   const { clearAll } = useCatalogActions();
+  const { rehydrateAll, busy: syncing, progress: syncProgress, error: syncError } = useRehydrate();
+  const [syncedMsg, setSyncedMsg] = useState<string | null>(null);
+
+  const pendingCount = doramas.filter((d) => d.wikidataId == null).length;
 
   const handleExportPdf = () => {
     if (doramas.length === 0) return;
@@ -20,6 +26,17 @@ export function DoramasScreen() {
     }));
     const pdf = buildDoramaPdf(list);
     pdf.save("doramas-assistidos.pdf");
+  };
+
+  const handleSync = async () => {
+    setSyncedMsg(null);
+    const n = await rehydrateAll();
+    if (n > 0) {
+      setSyncedMsg(
+        `${n} ${n === 1 ? "dorama enriquecido" : "doramas enriquecidos"} com o Wikidata.`,
+      );
+      setTimeout(() => setSyncedMsg(null), 6000);
+    }
   };
 
   const handleClear = () => {
@@ -60,6 +77,23 @@ export function DoramasScreen() {
             Exportar PDF
           </button>
           <button
+            onClick={handleSync}
+            disabled={syncing || pendingCount === 0}
+            className="flex items-center gap-2 rounded-xl border border-sky-500/20 bg-sky-950/20 px-4 py-2.5 text-sm font-medium text-sky-400 transition-all duration-200 hover:border-sky-500/40 hover:bg-sky-950/40 hover:text-sky-300 disabled:opacity-30 disabled:hover:border-sky-500/20 disabled:hover:bg-sky-950/20 disabled:hover:text-sky-400"
+          >
+            {syncing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            Sincronizar Wikidata
+            {pendingCount > 0 && (
+              <span className="rounded-full bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-bold text-sky-300">
+                {pendingCount}
+              </span>
+            )}
+          </button>
+          <button
             onClick={handleClear}
             className="flex items-center gap-2 rounded-xl border border-red-500/15 bg-red-950/20 px-4 py-2.5 text-sm font-medium text-red-400/80 transition-all duration-200 hover:border-red-500/30 hover:bg-red-950/40 hover:text-red-400"
           >
@@ -68,6 +102,28 @@ export function DoramasScreen() {
           </button>
         </div>
       </div>
+
+      {syncing && syncProgress && (
+        <p className="mb-4 text-xs text-sky-400">
+          Sincronizando com o Wikidata… {syncProgress.done} de {syncProgress.total}
+        </p>
+      )}
+      {syncedMsg && (
+        <p
+          style={{ animation: "fadeIn 0.2s ease-out" }}
+          className="mb-4 text-xs text-emerald-400"
+        >
+          {syncedMsg}
+        </p>
+      )}
+      {syncError && (
+        <p
+          style={{ animation: "fadeIn 0.2s ease-out" }}
+          className="mb-4 text-xs text-red-400"
+        >
+          {syncError}
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {doramas.map((d) => (

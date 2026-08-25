@@ -52,4 +52,16 @@ describe("useCatalogStore", () => {
     clearAll();
     expect(useCatalogStore.getState().doramas).toEqual([]);
   });
+
+  it("updateDorama substitui pelo id e preserva os demais", () => {
+    const { addDorama, updateDorama } = useCatalogStore.getState();
+    addDorama(dorama("1"));
+    addDorama(dorama("2"));
+    const current = useCatalogStore.getState().doramas[0];
+    updateDorama({ ...current, title: "Título Novo" });
+    const list = useCatalogStore.getState().doramas;
+    expect(list).toHaveLength(2);
+    expect(list.find((d) => d.id === "1")?.title).toBe("Título Novo");
+    expect(list.find((d) => d.id === "2")).toBeDefined();
+  });
 });

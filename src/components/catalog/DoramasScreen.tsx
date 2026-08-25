@@ -1,10 +1,11 @@
-import { useRef, useState } from "react";
-import { Film, FileDown, FileJson, Loader2, Sparkles, Star, Trash2, Upload } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { ArrowUpDown, Film, FileDown, FileJson, Loader2, Search, Sparkles, Star, Trash2, Upload } from "lucide-react";
 import { useCatalogStore } from "../../store/catalogStore";
 import { useCatalogActions } from "../../hooks/useCatalogActions";
 import { useRehydrate } from "../../hooks/useRehydrate";
 import { buildDoramaPdf, loadCjkFont, type ExportDorama } from "../../utils/exportPdf";
 import { serializeCatalog, parseBackup, BACKUP_FILENAME } from "../../utils/backup";
+import { sortDoramas, filterDoramas, type DoramaSort } from "../../utils/catalogView";
 import type { DoramaRecord } from "../../types/models";
 
 /** Tela "Doramas": grade de cards do catálogo + ações de exportar PDF e limpar. */
@@ -18,8 +19,16 @@ export function DoramasScreen() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [importedMsg, setImportedMsg] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<DoramaSort>("recent");
+  const [query, setQuery] = useState("");
 
   const pendingCount = doramas.filter((d) => d.wikidataId == null).length;
+
+  /** Catálogo filtrado (busca local) + ordenado, derivado das props. */
+  const visible = useMemo(
+    () => sortDoramas(filterDoramas(doramas, query), sortBy),
+    [doramas, query, sortBy],
+  );
 
   const handleExportPdf = async () => {
     if (doramas.length === 0) return;
@@ -134,7 +143,9 @@ export function DoramasScreen() {
         <div>
           <h2 className="text-xl font-bold tracking-tight text-white">Doramas</h2>
           <p className="text-sm text-gray-500">
-            {doramas.length} {doramas.length === 1 ? "dorama" : "doramas"} no catálogo
+            {query.trim()
+              ? `${visible.length} de ${doramas.length} ${doramas.length === 1 ? "dorama" : "doramas"}`
+              : `${doramas.length} ${doramas.length === 1 ? "dorama" : "doramas"} no catálogo`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -199,6 +210,32 @@ export function DoramasScreen() {
         </div>
       </div>
 
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <div className="flex flex-1 items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 focus-within:border-amber-500/30">
+          <Search className="h-4 w-4 shrink-0 text-gray-500" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Filtrar por título…"
+            className="w-full bg-transparent text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none"
+          />
+        </div>
+        <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-sm text-gray-400">
+          <ArrowUpDown className="h-4 w-4 text-gray-500" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as DoramaSort)}
+            className="cursor-pointer bg-transparent text-gray-200 focus:outline-none"
+            aria-label="Ordenar doramas"
+          >
+            <option value="recent" className="bg-gray-900">Recentes</option>
+            <option value="title" className="bg-gray-900">Título (A-Z)</option>
+            <option value="year" className="bg-gray-900">Ano (↑)</option>
+          </select>
+        </div>
+      </div>
+
       {syncing && syncProgress && (
         <p className="mb-4 text-xs text-sky-400">
           Sincronizando com o Wikidata… {syncProgress.done} de {syncProgress.total}
@@ -237,15 +274,23 @@ export function DoramasScreen() {
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {doramas.map((d) => (
-          <DoramaCard
-            key={d.id}
-            dorama={d}
-            onOpen={() => navigate({ name: "dorama-detail", doramaId: d.id })}
-          />
-        ))}
-      </div>
+      {visible.length === 0 ? (
+        <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+          <p className="text-sm text-gray-500">
+            Nenhum dorama corresponde à busca.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {visible.map((d) => (
+            <DoramaCard
+              key={d.id}
+              dorama={d}
+              onOpen={() => navigate({ name: "dorama-detail", doramaId: d.id })}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

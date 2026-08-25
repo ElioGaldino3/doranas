@@ -290,3 +290,46 @@ navegador, troca de máquina) era perda total do catálogo.
 - ✅ `npm test` (93), ✅ `npm run lint`, ✅ `npm run build`, ✅ `npx tsc -b`.
 
 ---
+
+## ✅ Concluída: Fase 7 — Filtros e ordenação do catálogo
+
+**Concluída em**: 2026-08-25 | **Commit**: _(commit da Fase 7, abaixo)_
+
+### Problema
+A grade de doramas (`DoramasScreen`) era estática: sem ordenação nem
+filtragem local. Com o catálogo crescendo, encontrar/ordenar doramas
+exigia rolar muito. A busca global do header só adiciona itens do TMDB,
+não filtra o que já está no catálogo.
+
+### Entregue (filtro local por título + ordenação)
+- `src/utils/catalogView.ts` (puro, testável):
+  - `DoramaSort = "recent" | "title" | "year"`.
+  - `sortDoramas(doramas, sortBy)` — recente (addedAt↓), título (colação
+    pt-BR `Intl.Collator` base+numeric, ignora acento), ano (↑, nulos por
+    último); **não muta** a entrada.
+  - `filterDoramas(doramas, query)` — substring case-insensitive no título;
+    query vazia retorna a própria lista (sem alocação).
+- `src/components/catalog/DoramasScreen.tsx`:
+  - Estado `sortBy`/`query` + `visible = useMemo(sortDoramas(filterDoramas(...)))`.
+  - Controle de **filtrar por título** (input com ícone `Search`) e **ordenar**
+    (`select` com `ArrowUpDown`: Recentes / Título A-Z / Ano ↑), abaixo da
+    barra de ações.
+  - Contador reflete filtro ("X de Y doramas" quando há busca).
+  - Grade renderiza `visible`; busca sem resultado mostra "Nenhum dorama
+    corresponde à busca." Exportar PDF/JSON continua usando o catálogo
+    **completo** (não a vista filtrada).
+- **Testes**: +8 em `tests/catalogView.test.ts` (ordenções, não-mutação,
+  colação pt-BR, nulo por último, filtro case-insensitive/vazio/sem match).
+  Total: **101**.
+
+### Decisões relevantes
+- **Ordenação pt-BR correta**: `Intl.Collator("pt-BR", {numeric:true})`
+  coloca "Água" antes de "Crash"/"Zona" e ordena anos como texto numérico.
+- **Export usa catálogo completo**, não a vista filtrada — o backup deve ser
+  do acervo inteiro, não de um recorte temporário da UI.
+- **Sem nova dependência**; `select`/`input` nativos estilizados com Tailwind.
+
+### Verificação (verde)
+- ✅ `npm test` (101), ✅ `npm run lint`, ✅ `npm run build`, ✅ `npx tsc -b`.
+
+---

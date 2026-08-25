@@ -94,6 +94,17 @@ Registre aqui toda informação nova e durável em vez de repetir no
 - **Decisão**: não reescrever `CastMember.personId` persistido — mantém dados
   originais e é reversível.
 
+### Filtros e ordenação do catálogo (Fase 7) — 2026-08-25
+- `src/utils/catalogView.ts` (puro): `DoramaSort`, `sortDoramas` (recente/
+  título/ano; colação `Intl.Collator("pt-BR",{numeric:true})` — acentos e
+  anos como texto; nulos de ano vão por último; não muta), `filterDoramas`
+  (substring case-insensitive no título; vazio retorna a própria lista).
+- `DoramasScreen`: estado `sortBy`/`query` + `visible = useMemo(...)`; input
+  de filtro (`Search`) + `select` de ordenação (Recentes/Título/Ano); contador
+  "X de Y" no filtro; "Nenhum dorama corresponde à busca." sem resultado.
+- **Decisão**: Exportar PDF/JSON usa o catálogo **completo**, não a vista
+  filtrada (backup do acervo inteiro). Sem nova dependência.
+
 ### Backup/Restore JSON (Fase 6) — 2026-08-25
 - **Portabilidade do catálogo**: antes os dados viviam só no `localStorage`
   (`dorama_graph_data`); sem cópia de segurança. Agora exporta/importa `.json`.

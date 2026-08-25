@@ -60,5 +60,6 @@ export const PROTAGONIST_TOP_N = 3;
 export type Screen =
   | { name: "doramas" }
   | { name: "atores" }
+  | { name: "estatisticas" }
   | { name: "dorama-detail"; doramaId: string }
   | { name: "ator-detail"; personId: string };

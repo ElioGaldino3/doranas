@@ -6,6 +6,7 @@ import { InitScreen } from "./components/init/InitScreen";
 import { Header } from "./components/layout/Header";
 import { DoramasScreen } from "./components/catalog/DoramasScreen";
 import { AtoresScreen } from "./components/catalog/AtoresScreen";
+import { EstatisticasScreen } from "./components/catalog/EstatisticasScreen";
 import { DoramaDetailScreen } from "./components/catalog/DoramaDetailScreen";
 import { AtorDetailScreen } from "./components/catalog/AtorDetailScreen";
 
@@ -37,6 +38,7 @@ export default function App() {
       <main className="flex-1 overflow-y-auto">
         {screen.name === "doramas" && <DoramasScreen />}
         {screen.name === "atores" && <AtoresScreen />}
+        {screen.name === "estatisticas" && <EstatisticasScreen />}
         {screen.name === "dorama-detail" && (
           <DoramaDetailScreen doramaId={screen.doramaId} />
         )}

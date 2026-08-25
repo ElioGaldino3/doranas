@@ -94,6 +94,15 @@ Registre aqui toda informação nova e durável em vez de repetir no
 - **Decisão**: não reescrever `CastMember.personId` persistido — mantém dados
   originais e é reversível.
 
+### Painel de estatísticas (Fase 9) — 2026-08-25
+- `src/utils/stats.ts` (puro): `computeStats(doramas, aliases?) → CatalogStats`
+  { doramaCount, actorCount (canônico), appearanceCount, protagonistCount,
+  topActors (TOP_ACTORS_N=5), byYear }. Reusa `actorsByAppearance`/
+  `buildCanonicalIdMap` → ator splitado conta 1 vez (coerente Fases 5/8).
+- `Screen += { name: "estatisticas" }`; `EstatisticasScreen` (cards + top
+  atores clicáveis + barras por ano, "—" por último); aba "Estatísticas" no
+  `Header`; rota em `App`. Sem nova dependência.
+
 ### Merge manual de atores (Fase 8) — 2026-08-25
 - **Resolve a limitação da Fase 5**: ator só-TMDB (`"123"`) vs ator só-Wikidata
   (`"Q678"`) sem id comum ficavam separados. Agora um alias manual

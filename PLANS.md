@@ -390,3 +390,39 @@ só-Wikidata (`"Q678"`) noutro — ele continua separado em "2 atores".
 - ✅ `npm test` (114), ✅ `npm run lint`, ✅ `npm run build`, ✅ `npx tsc -b`.
 
 ---
+
+## ✅ Concluída: Fase 9 — Painel de estatísticas
+
+**Concluída em**: 2026-08-25 | **Commit**: _(commit da Fase 9, abaixo)_
+
+### Problema
+Não havia visão agregada do catálogo — só listas (Doramas/Atores). O usuário
+não enxergava totais, atores recorrentes nem distribuição por ano.
+
+### Entregue (tela Estatísticas, derivada e pura)
+- `src/utils/stats.ts` (puro, testável): `computeStats(doramas, aliases?)`
+  → `CatalogStats { doramaCount, actorCount (canônico), appearanceCount,
+  protagonistCount, topActors (TOP_ACTORS_N=5), byYear }`. `actorCount` e
+  `protagonistCount` usam ids **canônicos** (dedup automático + alias manual),
+  não os ids crus.
+- `src/types/models.ts`: `Screen` += `{ name: "estatisticas" }`.
+- `src/components/catalog/EstatisticasScreen.tsx`: cards (Doramas/Atores/
+  Aparições/Protagonistas), "Atores mais recorrentes" (top 5, clicável →
+  detalhe) e "Doramas por ano" (barras; "—" para sem ano, por último). Estado
+  vazio amigável.
+- `src/components/layout/Header.tsx`: +aba "Estatísticas" (`BarChart3`).
+- `src/App.tsx`: rota `screen.name === "estatisticas"`.
+- **Testes**: +4 em `tests/stats.test.ts` (vazio; totais/top; ator único via
+  alias; agregação por ano com "—" por último). Total: **118**.
+
+### Decisões relevantes
+- **Derivação pura**: stats vem de `actorsByAppearance`/`buildCanonicalIdMap`,
+  reusando a contagem canônica (coerente com Fases 5/8) — ator splitado conta
+  1 vez.
+- **Sem nova dependência**; barras com `width` proporcional via `maxYearCount`.
+- Aba dedicada (não modal) mantém o padrão de navegação por `screen`.
+
+### Verificação (verde)
+- ✅ `npm test` (118), ✅ `npm run lint`, ✅ `npm run build`, ✅ `npx tsc -b`.
+
+---

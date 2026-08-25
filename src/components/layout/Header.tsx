@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Clapperboard, Film, Users } from "lucide-react";
+import { BarChart3, Clapperboard, Film, Users } from "lucide-react";
 import { useCatalogStore } from "../../store/catalogStore";
 import { SearchInput } from "../search/SearchInput";
 
@@ -36,6 +36,7 @@ export function Header() {
 
   const isDoramasActive = screen.name === "doramas" || screen.name === "dorama-detail";
   const isAtoresActive = screen.name === "atores" || screen.name === "ator-detail";
+  const isStatsActive = screen.name === "estatisticas";
 
   return (
     <header className="flex flex-col gap-3 border-b border-white/[0.06] bg-gray-950/80 px-4 pt-3 backdrop-blur-xl sm:flex-row sm:items-center sm:gap-6 sm:px-6 sm:py-3">
@@ -62,6 +63,12 @@ export function Header() {
             onClick={() => navigate({ name: "atores" })}
             icon={<Users className="h-4 w-4" />}
             label="Atores"
+          />
+          <Tab
+            active={isStatsActive}
+            onClick={() => navigate({ name: "estatisticas" })}
+            icon={<BarChart3 className="h-4 w-4" />}
+            label="Estatísticas"
           />
         </nav>
       </div>

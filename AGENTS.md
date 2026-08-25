@@ -122,12 +122,14 @@ doranas/
     │   ├── useGraph.ts                   # ponte para useLocalStorageGraph
     │   └── useTMDB.ts                    # search + fetchCast (com estados)
     ├── services/
-    │   └── tmdb.ts                       # chamadas à API TMDB (search/find/credits)
+    │   ├── tmdb.ts                       # chamadas à API TMDB (search/find/credits)
+    │   └── wikidata.ts                   # cliente SPARQL do Wikidata (P161/P4983/P4985/P18)
     ├── store/
     │   └── graphStore.ts                 # Zustand: nós/links/estado do grafo
     ├── types/
     │   ├── graph.ts                      # Node, Link, GraphDocument
     │   ├── tmdb.ts                       # SearchResult, CastResult, respostas
+    │   ├── wikidata.ts                   # SPARQL bindings, WikidataCastRow, TmdbToQidMap
     │   └── d3-force-3d.d.ts              # declaração de tipo do d3
     ├── utils/
     │   ├── graphTransform.ts             # TMDB → nós/arestas do grafo

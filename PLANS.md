@@ -36,20 +36,49 @@ progresso. Uma seção por tarefa ativa; remover ao concluir.
 
 ---
 
-## Tarefa ativa: Fase 1 — Serviço Wikidata (SPARQL) + types
+## ✅ Concluída: Fase 1 — Serviço Wikidata (SPARQL) + types
+
+**Concluída em**: 2026-08-25 | **Commit**: _(commit da Fase 1, logo abaixo)_
+
+### Entregue
+- `src/services/wikidata.ts`: `sparqlQuery` (fetch injetável, `User-Agent`,
+  `format=json`), `resolveSeriesQidsByTmdbIds` (1 query `VALUES`),
+  `fetchCastForQid` (P161+P4985+P18+label), `castQueryForQids` (lote),
+  `qidFromUri`, `WikidataHttpError` (status + `retryAfterMs`).
+- `src/types/wikidata.ts`: `SparqlBinding`, `SparqlResults`, `WikidataCastRow`,
+  `TmdbToQidMap`.
+- **11 testes** em `tests/wikidata.test.ts` (fetch mockado): mapeamento,
+  normalização, fallback de label, QID inválido, erro 429/Retry-After, montagem
+  de query. Suite total agora com **21 testes**.
+- `docs/MEMORIES.md` e `AGENTS.md` atualizados.
+
+### Verificação (verde)
+- ✅ `npm test` (21), ✅ `npm run lint`, ✅ `npm run build`, ✅ `npx tsc -b`.
+
+### Pendências p/ Fase 2
+- `sparqlQuery` lança em 429 mas **não faz retry**; o pacing (sequencial + retry
+  com `retryAfterMs`) será usado no lote da **Fase 3** (migração) e no consumo
+  pela UI. `castQueryForQids` está implementada mas ainda não usada em prod.
+
+---
+
+## Tarefa ativa: Fase 2 — Modelo v2 + store + derivação
 
 **Status**: ⏳ Pendente (aguarda execução).
-**Plano completo**: ver `C:\Users\eliog\.opencode\plan\wikidata-redesign.md`
-(seções Fase 1+ e o conteúdo para este PLANS.md).
+**Plano completo**: `C:\Users\eliog\.opencode\plan\wikidata-redesign.md` (Fase 2).
 
-### Resumo do que vem (referência)
-1. Fase 1 — `services/wikidata.ts` (SPARQL), `types/wikidata.ts`, testes com
-   `fetch` mockado. Endpoint/limits/props já validados ao vivo (P161, P4983,
-   P4985, P18).
-2. Fase 2 — Modelo v2 (`DoramaRecord`/`CastMember`), `catalogStore`,
-   derivações + remoção do grafo.
-3. Fase 3 — Migração automática v1→v2 (backup, rehidratação TMDB, Wikidata em
-   lote, progresso, parcial `migrationPending`).
-4. Fase 4 — UI: telas Doramas/Atores + detalhes, nav no topo, remoção do
-   grafo. **Remover ignores de grafo do `eslint.config.js` aqui.**
-5. Fase 5 — Docs (MEMORIES/AGENTS/PLANS) + verificação final.
+### Resumo
+- Tipos v2: `DoramaRecord`/`CastMember`, `SCHEMA_VERSION = 2`.
+- `catalogStore` (Zustand): `doramas`, `screen`, seleções + ações.
+- `derivations.ts`: `actorsByAppearance`, `otherDoramasOf`,
+  `applyProtagonistHeuristic` (billing top-3), merge TMDB⊕Wikidata.
+- Persistência em `dorama_graph_data` v2; remover `graphStore`/`useGraph`/
+  `useLocalStorageGraph`/`types/graph.ts`.
+- Testes de derivação + merge.
+
+### Roadmap pendente
+- **Fase 3** — Migração automática v1→v2 (backup, rehidratação TMDB,
+  Wikidata em lote, progresso, parcial `migrationPending`).
+- **Fase 4** — UI: telas Doramas/Atores + detalhes, nav no topo, remoção do
+  grafo. **Remover ignores de grafo do `eslint.config.js` aqui.**
+- **Fase 5** — Docs (MEMORIES/AGENTS/PLANS) + verificação final.

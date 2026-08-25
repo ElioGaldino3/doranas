@@ -6,6 +6,27 @@ Registre aqui toda informação nova e durável em vez de repetir no
 
 ## Registros
 
+### Wikidata / SPARQL (Fase 1) — 2026-08-25
+- **Endpoint**: `https://query.wikidata.org/sparql` + `format=json` (SPARQL 1.1
+  JSON). GET p/ queries curtas; POST (corpo `query=...`) p/ maiores (não cacheado).
+- **Limites**: 60s por query; **5 paralelas por IP**; 60s de processamento / 60s
+  por cliente; `429` + `Retry-After`; **User-Agent obrigatório** (política
+  Wikimedia).
+- **Propriedades**: `P161` = cast member; `P4983` = TMDB TV series ID;
+  `P4985` = TMDB person ID; `P18` = imagem. Qualificadores de P161 (P453/P4633)
+  são **esparsos** — não confiar para protagonista.
+- **Cobertura incompleta**: nem todo item tem `P4985`/`P4983` (ex.: Tom Hanks
+  Q2263 sem TMDB). TMDB é fonte de verdade; Wikidata é **complemento de elenco**.
+- **Implementação**: `src/services/wikidata.ts` — `resolveSeriesQidsByTmdbIds`
+  (1 query `VALUES`), `fetchCastForQid`, `castQueryForQids` (lote),
+  `sparqlQuery` (fetch injetável p/ teste, `User-Agent`). `WikidataHttpError`
+  expõe `status` e `retryAfterMs`.
+- **Query de elenco validada ao vivo** (20 atores p/ That '70s Show):
+  `?item wdt:P161 ?actor . OPTIONAL{?actor wdt:P4985 ?t} .
+   OPTIONAL{?actor wdt:P18 ?i} . SERVICE wikibase:label { ... "pt,en" }`.
+- **Pacing**: ao rodar em lote, **sequencial** (1 por vez) — margem segura
+  abaixo do teto de 5 paralelas; retry em 429 respeitando `retryAfterMs`.
+
 ### Setup de testes + lint (Fase 0) — 2026-08-25
 - **Vitest 4.1.x + React Testing Library (jsdom)**. `engines` do Vitest 4:
   `^20.0.0 || ^22.0.0 || >=24.0.0`; requer **Vite ≥ 6.4**. Config no bloco

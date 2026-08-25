@@ -125,14 +125,17 @@ doranas/
     │   ├── tmdb.ts                       # chamadas à API TMDB (search/find/credits)
     │   └── wikidata.ts                   # cliente SPARQL do Wikidata (P161/P4983/P4985/P18)
     ├── store/
-    │   └── graphStore.ts                 # Zustand: nós/links/estado do grafo
+    │   ├── graphStore.ts                 # Zustand: nós/links/estado do grafo (legado, Fase 4)
+    │   └── catalogStore.ts               # Zustand v2: doramas + navegação (novo, sem persistência)
     ├── types/
-    │   ├── graph.ts                      # Node, Link, GraphDocument
+    │   ├── graph.ts                      # Node, Link, GraphDocument (legado, Fase 4)
+    │   ├── models.ts                     # v2: DoramaRecord, CastMember, Screen, PROTAGONIST_TOP_N
     │   ├── tmdb.ts                       # SearchResult, CastResult, respostas
     │   ├── wikidata.ts                   # SPARQL bindings, WikidataCastRow, TmdbToQidMap
     │   └── d3-force-3d.d.ts              # declaração de tipo do d3
     ├── utils/
-    │   ├── graphTransform.ts             # TMDB → nós/arestas do grafo
+    │   ├── graphTransform.ts             # TMDB → nós/arestas do grafo (legado, Fase 4)
+    │   ├── derivations.ts                # v2: protagonista por billing, atores por aparição, merge TMDB⊕WD
     │   ├── deduplicate.ts                # helper genérico de deduplicação
     │   └── exportPdf.ts                  # exporta lista como PDF (jspdf)
     └── styles/

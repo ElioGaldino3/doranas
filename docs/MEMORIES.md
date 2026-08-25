@@ -6,6 +6,32 @@ Registre aqui toda informação nova e durável em vez de repetir no
 
 ## Registros
 
+### Modelo v2 + derivações + catalogStore (Fase 2) — 2026-08-25
+- **Modelo v2** (`src/types/models.ts`): `DoramaRecord` (id TMDB, título, ano,
+  overview, poster, addedAt, wikidataId, cast), `CastMember` (personId, name,
+  profileImgUrl, order, protagonist, wikidataId), `SCHEMA_VERSION = 2`,
+  `DoramaDocument` (persistido na chave `dorama_graph_data`), `Screen`
+  (navegação por telas trocáveis, sem router).
+- **`PROTAGONIST_TOP_N = 3`**: protagonista = `order < topN` (billing 0-based,
+  os N primeiros). Não marcar nunca `order == null` (atores só-Wikidata).
+- **Derivações** (`src/utils/derivations.ts`), todas puras:
+  - `applyProtagonistHeuristic(cast, topN)`
+  - `tmdbCastToMembers(cast, toProfileUrl?)` — order = índice do billing.
+  - `mergeCast(tmdb, wikidata)` — TMDB é base; enriquece `wikidataId` por
+    casamento de `tmdbPersonId`; adiciona atores só-Wikidata com
+    `order=null`, `personId=QID`. **Não muta inputs** (clona). Dedup por
+    personId/QID.
+  - `actorsByAppearance(doramas)` — agrega atores, ordena por aparições desc,
+    desempate nome asc.
+  - `otherDoramasOf`, `doramasOfPerson` — doramas onde um ator aparece.
+- **`catalogStore`** (Zustand): `doramas` + `screen` (navegação), `addDorama`
+  (dedup por id), `setDoramas`, `navigate`. **Sem persistência** — a escrita
+  na chave `dorama_graph_data` v2 e a migração são da Fase 3.
+- **Decisão de escopo**: o código do grafo (graphStore/useLocalStorageGraph/
+  graphTransform/types/graph e a UI) **não foi removido na Fase 2** — a UI
+  ainda o usa até a Fase 4 (redesign). Fase 2 foi **aditiva**. Persistência v2
+  na mesma chave ficou para a Fase 3 para não conflitar com o sistema atual.
+
 ### Wikidata / SPARQL (Fase 1) — 2026-08-25
 - **Endpoint**: `https://query.wikidata.org/sparql` + `format=json` (SPARQL 1.1
   JSON). GET p/ queries curtas; POST (corpo `query=...`) p/ maiores (não cacheado).

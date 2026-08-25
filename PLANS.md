@@ -62,23 +62,25 @@ progresso. Uma seção por tarefa ativa; remover ao concluir.
 
 ---
 
-## Tarefa ativa: Fase 2 — Modelo v2 + store + derivação
+## ✅ Concluída: Fase 2 — Modelo v2 + store + derivação
 
-**Status**: ⏳ Pendente (aguarda execução).
-**Plano completo**: `C:\Users\eliog\.opencode\plan\wikidata-redesign.md` (Fase 2).
+**Concluída em**: 2026-08-25 | **Commit**: _(commit da Fase 2, abaixo)_
 
-### Resumo
-- Tipos v2: `DoramaRecord`/`CastMember`, `SCHEMA_VERSION = 2`.
-- `catalogStore` (Zustand): `doramas`, `screen`, seleções + ações.
-- `derivations.ts`: `actorsByAppearance`, `otherDoramasOf`,
-  `applyProtagonistHeuristic` (billing top-3), merge TMDB⊕Wikidata.
-- Persistência em `dorama_graph_data` v2; remover `graphStore`/`useGraph`/
-  `useLocalStorageGraph`/`types/graph.ts`.
-- Testes de derivação + merge.
+### Entregue (aditivo — grafo legado mantido até a Fase 4)
+- `src/types/models.ts`: `DoramaRecord`, `CastMember`, `SCHEMA_VERSION = 2`,
+  `DoramaDocument`, `PROTAGONIST_TOP_N = 3`, `Screen`.
+- `src/utils/derivations.ts` (puras): `applyProtagonistHeuristic`,
+  `tmdbCastToMembers`, `mergeCast`, `actorsByAppearance`, `otherDoramasOf`,
+  `doramasOfPerson`.
+- `src/store/catalogStore.ts`: `doramas` + `screen`, `addDorama` (dedup),
+  `navigate`, `setDoramas`. **Sem persistência** (fica p/ Fase 3, mesma chave).
+- **Testes**: +8 derivações, +3 catalogStore (total **32**).
+- **Decisão**: remoção do grafo e persistência v2 na chave movidas p/ Fase 3/4
+  (evita conflito de chave e quebra da UI). Ver `docs/MEMORIES.md`.
 
-### Roadmap pendente
-- **Fase 3** — Migração automática v1→v2 (backup, rehidratação TMDB,
-  Wikidata em lote, progresso, parcial `migrationPending`).
-- **Fase 4** — UI: telas Doramas/Atores + detalhes, nav no topo, remoção do
-  grafo. **Remover ignores de grafo do `eslint.config.js` aqui.**
-- **Fase 5** — Docs (MEMORIES/AGENTS/PLANS) + verificação final.
+### Verificação (verde)
+- ✅ `npm test` (32), ✅ `npm run lint`, ✅ `npm run build`, ✅ `npx tsc -b`.
+
+---
+
+## Tarefa ativa: Fase 3 — Migração automática v1→v2

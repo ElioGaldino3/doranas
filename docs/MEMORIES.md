@@ -46,6 +46,34 @@ Registre aqui toda informação nova e durável em vez de repetir no
   - Nota: `eslint-visitor-keys@5` (via typescript-eslint, dev) pede Node
     ≥22.13 — roda OK no Node 22.4, apenas `EBADENGINE` warning.
 
+### Remanescentes pós-Fase 4 (2ª leva) — 2026-08-25
+- **Removido `@types/jspdf`**: jspdf v4 já traz tipos próprios; sobrava
+  `@types/jspdf@1.3.3` (v1 API) em conflito/obsoleto. `tsc -b` passa com os
+  tipos do pacote.
+- **Limiares de cobertura**: `vite.config.ts` `test.coverage.thresholds`
+  (v8) — statements 75 / branches 60 / functions 70 / lines 75 (abaixo dos
+  valores atuais: ~81/66/76/79, com margem).
+- **Auto-re-hidratação em background**: `src/hooks/useAutoRehydrate.ts`
+  (usa `useRehydrate().rehydrateAll`) chamado em `App` após o gating de init;
+  dispara **uma vez** quando o catálogo carrega com pendentes (`wikidataId ==
+  null`). Não bloqueia a UI; badge/progresso refletem o andamento.
+- **Subset da fonte CJK — ANALISADO E ADIADO (não viável com ganho real)**:
+  - Build-time estático com `subset-font` (node-only, WASM via `fs`/`require`)
+    reduziu só ~3% (2007→1938 KB): para coreano o **bloco Hangul Syllables
+    completo (~11k glifos) é obrigatório para corretude** e domina o tamanho da
+    fonte — qualquer subset estático correto de coreano ≈ 2MB.
+  - Ganho real (~19 KB) exigiria subset **por título em runtime**; as libs
+    disponíveis não servem no browser: `subset-font` carrega WASM via
+    `require('fs')`/`require.resolve` (só node); `fontkit@2` subsettter está
+    quebrado p/ glyf; `opentype.js@2` removeu `font.subset`. Bundlear o WASM do
+    harfbuzzjs no Vite é frágil e não testável aqui.
+  - **Decisão**: manter a fonte completa (carregada sob demanda **só** quando o
+    título tem caractere > Latin-1: `hasCjkChars`) — otimização segura já em
+    vigor. Não se adicionou dependência para ganho negligenciável.
+  - Opções para o usuário, se quiser prosseguir: (a) build-time subset completo
+    de Hangul (~3%, dep dev `subset-font` + script); (b) runtime subset por
+    título com shim de WASM no browser (ganho real, risco de bundling).
+
 ### UI do catálogo v2 + remoção do grafo (Fase 4) — 2026-08-25
 - **Init no entry**: `App` chama `useAppInit` e **gating** — enquanto
   `loading`, renderiza `InitScreen` (splash com barra de progresso `done/total`

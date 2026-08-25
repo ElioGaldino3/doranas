@@ -15,10 +15,8 @@
   "dependencies": {
     "jspdf": "^4.2.1",
     "lucide-react": "^0.460.0",
-    "opentype.js": "^2.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "subset-font": "^2.5.0",
     "zustand": "^5.0.0"
   },
   "devDependencies": {

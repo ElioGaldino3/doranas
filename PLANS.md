@@ -185,3 +185,22 @@ progresso. Uma seÃ§Ã£o por tarefa ativa; remover ao concluir.
   âœ… `npm audit` (0), âœ… `npm run test:coverage`.
 
 ---
+
+## Remanescentes pós-Fase 4 (2ª leva) — 2026-08-25
+
+**Concluídas**: remover `@types/jspdf`, limiares de cobertura, auto-re-hidratação
+em background. **Adiado (analisado)**: subset da fonte CJK.
+
+- `3b393c2` build(deps): remove `@types/jspdf` obsoleto (jspdf v4 já traz tipos).
+- `4cd6b81` test(coverage): define limiares globais de cobertura no vitest.
+- `c1bb3fc` feat(rehydrate): auto-re-hidratação de pendentes em background.
+- Subset CJK: **adiado** — build-time estático reduz só ~3% (coreano exige o
+  bloco Hangul completo); runtime por título (~19 KB) exigiria `subset-font`
+  (node-only/WASM) no browser — inviável sem bundling frágil. Mantido: fonte
+  completa carregada sob demanda só quando há CJK. Ver `docs/MEMORIES.md`.
+
+### Verificação (verde)
+- ? `npm test` (**75**), ? `npm run lint`, ? `npm run build`, ? `npx tsc -b`,
+  ? `npm run test:coverage` (limiares OK), ? `npm audit` (0).
+
+---

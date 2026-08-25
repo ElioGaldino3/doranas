@@ -74,6 +74,26 @@ Registre aqui toda informação nova e durável em vez de repetir no
     de Hangul (~3%, dep dev `subset-font` + script); (b) runtime subset por
     título com shim de WASM no browser (ganho real, risco de bundling).
 
+### Dedup de atores (id canônico) — Fase 5 — 2026-08-25
+- **Problema**: o mesmo ator físico aparecia com `personId` divergente entre
+  doramas — TMDB id num dorama migrado e Wikidata QID (`"Q678"`) noutro vindo
+  só do Wikidata — dividindo-o em "atores" separados e quebrando
+  cross-references e a página de detalhe.
+- **Solução (não destrutiva, em nível de leitura)**: `derivations.ts` ganhou
+  `actorIds(member)` (`[wikidataId, personId]`, QID primeiro),
+  `buildCanonicalIdMap(doramas)` (union-find de TMDB id ↔ QID → id canônico,
+  prefere `wikidataId`) e `canonicalId(member, map)`. `actorsByAppearance`,
+  `otherDoramasOf`, `doramasOfPerson` agrupam/buscam pelo id canônico.
+- **UI**: `AtorDetailScreen` faz lookup por id canônico; `DoramaDetailScreen`
+  (`CastRow`) navega/cruza pelo id canônico. `ActorAppearance.personId` virou o
+  id canônico (consumido pelo `AtoresScreen` sem mudança).
+- **Limite conhecido**: ator só-Wikidata (`Q678`) num dorama vs ator TMDB num
+  dorama manual ainda não re-hidratado (`123`, sem `wikidataId`) segue separado
+  — não há casamento por nome (fuzzy: risco de fundir pessoas diferentes).
+  Resolvido quando o dorama manual é re-hidratado (ganha `wikidataId`).
+- **Decisão**: não reescrever `CastMember.personId` persistido — mantém dados
+  originais e é reversível.
+
 ### UI do catálogo v2 + remoção do grafo (Fase 4) — 2026-08-25
 - **Init no entry**: `App` chama `useAppInit` e **gating** — enquanto
   `loading`, renderiza `InitScreen` (splash com barra de progresso `done/total`

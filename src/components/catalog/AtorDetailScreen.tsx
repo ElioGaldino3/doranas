@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { ArrowLeft, Film, Star, Users } from "lucide-react";
 import { useCatalogStore } from "../../store/catalogStore";
-import { doramasOfPerson } from "../../utils/derivations";
+import { buildCanonicalIdMap, canonicalId, doramasOfPerson } from "../../utils/derivations";
 import { thumbUrl } from "../../utils/images";
 import type { CastMember } from "../../types/models";
 
@@ -10,9 +10,13 @@ export function AtorDetailScreen({ personId }: { personId: string }) {
   const doramas = useCatalogStore((s) => s.doramas);
   const navigate = useCatalogStore((s) => s.navigate);
 
+  // `personId` é o id canônico do ator; busca por ele (e não pelo `personId`
+  // cru do membro) para achar o ator mesmo quando o dorama o armazena sob um
+  // id divergente (TMDB id vs Wikidata QID).
   const actor = useMemo<CastMember | null>(() => {
+    const map = buildCanonicalIdMap(doramas);
     for (const d of doramas) {
-      const m = d.cast.find((c) => c.personId === personId);
+      const m = d.cast.find((c) => canonicalId(c, map) === personId);
       if (m) return m;
     }
     return null;

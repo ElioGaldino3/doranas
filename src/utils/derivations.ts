@@ -80,7 +80,57 @@ export function mergeCast(
   return merged;
 }
 
+/**
+ * Ids pelos quais um membro de elenco pode ser referenciado para
+ * deduplicação: o `personId` (TMDB id ou QID) e, quando houver, o
+ * `wikidataId`. O `wikidataId` vem primeiro porque é a identidade
+ * globalmente única e autoritativa — cruza o TMDB id e o QID do mesmo ator
+ * físico quando um dorama traz um e outro dorama traz o outro.
+ */
+export function actorIds(member: CastMember): string[] {
+  return member.wikidataId ? [member.wikidataId, member.personId] : [member.personId];
+}
+
+/**
+ * Mapa de qualquer id conhecido (TMDB id ou Wikidata QID) → id canônico do
+ * ator, unificando entradas que compartilham um mesmo id (union-find sobre o
+ * catálogo). Resolve o caso em que o mesmo ator aparece com `personId`
+ * divergente entre doramas (ex.: TMDB id num dorama migrado e QID noutro
+ * vindo só do Wikidata). O id canônico prefere o `wikidataId` quando este
+ * participa da classe de equivalência.
+ */
+export function buildCanonicalIdMap(doramas: DoramaRecord[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const dorama of doramas) {
+    for (const member of dorama.cast) {
+      const ids = actorIds(member);
+      let canon: string | undefined;
+      for (const id of ids) {
+        const existing = map.get(id);
+        if (existing) {
+          canon = existing;
+          break;
+        }
+      }
+      if (!canon) canon = ids[0];
+      for (const id of ids) map.set(id, canon);
+    }
+  }
+  return map;
+}
+
+/** Id canônico de um membro de elenco (usado para agrupar/dedup). */
+export function canonicalId(member: CastMember, map: Map<string, string>): string {
+  const ids = actorIds(member);
+  for (const id of ids) {
+    const canon = map.get(id);
+    if (canon) return canon;
+  }
+  return ids[0];
+}
+
 export interface ActorAppearance {
+  /** Id canônico do ator (TMDB id ou QID — unifica personIds divergentes). */
   personId: string;
   name: string;
   profileImgUrl?: string;
@@ -90,13 +140,17 @@ export interface ActorAppearance {
   doramaIds: string[];
 }
 
-/** Atores agregados por nº de aparições (desc), desempate por nome (asc). */
+/** Atores agregados por nº de aparições (desc), desempate por nome (asc).
+ * Agrupa pelo id canônico do ator, unificando o mesmo ator físico quando ele
+ * aparece com `personId` divergente (TMDB id vs Wikidata QID) entre doramas. */
 export function actorsByAppearance(doramas: DoramaRecord[]): ActorAppearance[] {
-  const map = new Map<string, ActorAppearance>();
+  const map = buildCanonicalIdMap(doramas);
+  const agg = new Map<string, ActorAppearance>();
 
   for (const dorama of doramas) {
     for (const member of dorama.cast) {
-      const existing = map.get(member.personId);
+      const key = canonicalId(member, map);
+      const existing = agg.get(key);
       if (existing) {
         existing.appearances += 1;
         existing.doramaIds.push(dorama.id);
@@ -104,8 +158,8 @@ export function actorsByAppearance(doramas: DoramaRecord[]): ActorAppearance[] {
         if (!existing.wikidataId && member.wikidataId) existing.wikidataId = member.wikidataId;
         if (member.name) existing.name = member.name;
       } else {
-        map.set(member.personId, {
-          personId: member.personId,
+        agg.set(key, {
+          personId: key,
           name: member.name,
           profileImgUrl: member.profileImgUrl,
           wikidataId: member.wikidataId,
@@ -116,34 +170,38 @@ export function actorsByAppearance(doramas: DoramaRecord[]): ActorAppearance[] {
     }
   }
 
-  return [...map.values()].sort(
+  return [...agg.values()].sort(
     (a, b) => b.appearances - a.appearances || a.name.localeCompare(b.name),
   );
 }
 
-/** Doramas (título + id) onde o ator aparece, exceto o dorama atual. */
+/** Doramas (título + id) onde o ator aparece, exceto o dorama atual.
+ * `personId` é o id canônico do ator (ver `buildCanonicalIdMap`). */
 export function otherDoramasOf(
   doramas: DoramaRecord[],
   personId: string,
   currentDoramaId: string,
 ): { id: string; title: string; protagonist: boolean }[] {
+  const map = buildCanonicalIdMap(doramas);
   const result: { id: string; title: string; protagonist: boolean }[] = [];
   for (const dorama of doramas) {
     if (dorama.id === currentDoramaId) continue;
-    const member = dorama.cast.find((m) => m.personId === personId);
+    const member = dorama.cast.find((m) => canonicalId(m, map) === personId);
     if (member) result.push({ id: dorama.id, title: dorama.title, protagonist: member.protagonist });
   }
   return result;
 }
 
-/** Aparências de um ator em todos os doramas (para a página de detalhe do ator). */
+/** Aparências de um ator em todos os doramas (para a página de detalhe do ator).
+ * `personId` é o id canônico do ator (ver `buildCanonicalIdMap`). */
 export function doramasOfPerson(
   doramas: DoramaRecord[],
   personId: string,
 ): { id: string; title: string; year?: number | null; protagonist: boolean }[] {
+  const map = buildCanonicalIdMap(doramas);
   const result: { id: string; title: string; year?: number | null; protagonist: boolean }[] = [];
   for (const dorama of doramas) {
-    const member = dorama.cast.find((m) => m.personId === personId);
+    const member = dorama.cast.find((m) => canonicalId(m, map) === personId);
     if (member) {
       result.push({
         id: dorama.id,

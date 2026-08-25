@@ -8,6 +8,9 @@ import {
   doramasOfPerson,
   doramaFromTmdb,
   enrichDoramaWithWikidata,
+  actorIds,
+  buildCanonicalIdMap,
+  canonicalId,
 } from "../src/utils/derivations";
 import type { CastMember, DoramaRecord } from "../src/types/models";
 import type { CastResult, SeriesDetails } from "../src/types/tmdb";
@@ -187,5 +190,63 @@ describe("enrichDoramaWithWikidata", () => {
     expect(base.wikidataId).toBeNull();
     expect(base.cast).toHaveLength(2);
     expect(out).not.toBe(base);
+  });
+});
+
+describe("deduplicação de atores (id canônico)", () => {
+  // Mesmo ator físico aparece com `personId` divergente entre doramas: no
+  // dorama d1 vem do TMDB (personId "123") e ganhou wikidataId "Q678" na
+  // migração; no dorama d2 vem só do Wikidata (personId "Q678").
+  const splitActor = (): CastMember => ({ personId: "123", name: "Ator Split", order: 0, protagonist: false, wikidataId: "Q678" });
+  const wikiOnly = (): CastMember => ({ personId: "Q678", name: "Ator Split", order: null, protagonist: false, wikidataId: "Q678" });
+
+  const doramas: DoramaRecord[] = [
+    { id: "d1", title: "D1", addedAt: 1, cast: [splitActor(), member("other", 1)] },
+    { id: "d2", title: "D2", addedAt: 2, cast: [wikiOnly()] },
+    { id: "d3", title: "D3", addedAt: 3, cast: [member("Q999", 0)] }, // ator distinto
+  ];
+
+  it("actorIds prioriza wikidataId quando presente", () => {
+    expect(actorIds(splitActor())).toEqual(["Q678", "123"]);
+    expect(actorIds(member("42", 0))).toEqual(["42"]);
+  });
+
+  it("buildCanonicalIdMap unifica TMDB id e QID do mesmo ator", () => {
+    const map = buildCanonicalIdMap(doramas);
+    expect(map.get("123")).toBe("Q678");
+    expect(map.get("Q678")).toBe("Q678");
+  });
+
+  it("canonicalId é estável e consistente entre entradas do mesmo ator", () => {
+    const map = buildCanonicalIdMap(doramas);
+    expect(canonicalId(splitActor(), map)).toBe("Q678");
+    expect(canonicalId(wikiOnly(), map)).toBe("Q678");
+  });
+
+  it("actorsByAppearance unifica o ator splitado em 1 entrada (2 aparições)", () => {
+    const actors = actorsByAppearance(doramas);
+    const split = actors.find((a) => a.personId === "Q678");
+    expect(split).toBeDefined();
+    expect(split!.appearances).toBe(2);
+    expect(split!.doramaIds.sort()).toEqual(["d1", "d2"]);
+    // O ator distinto (Q999) continua separado.
+    expect(actors.find((a) => a.personId === "Q999")?.appearances).toBe(1);
+    // Total de atores agregados = 3 (split + other + Q999).
+    expect(actors).toHaveLength(3);
+  });
+
+  it("doramasOfPerson lista ambos os doramas do ator splitado", () => {
+    const all = doramasOfPerson(doramas, "Q678").sort((a, b) => a.id.localeCompare(b.id));
+    expect(all.map((d) => d.id)).toEqual(["d1", "d2"]);
+  });
+
+  it("otherDoramasOf cruza o split entre doramas via id canônico", () => {
+    const others = otherDoramasOf(doramas, "Q678", "d1");
+    expect(others).toEqual([{ id: "d2", title: "D2", protagonist: false }]);
+  });
+
+  it("não funde atores de verdade distintos", () => {
+    const map = buildCanonicalIdMap(doramas);
+    expect(canonicalId(member("Q999", 0), map)).toBe("Q999");
   });
 });

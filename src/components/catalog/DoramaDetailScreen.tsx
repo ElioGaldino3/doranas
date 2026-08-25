@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowLeft, Film, Loader2, Sparkles, Star, Trash2 } from "lucide-react";
 import { useCatalogStore } from "../../store/catalogStore";
 import { useCatalogActions } from "../../hooks/useCatalogActions";
 import { useRehydrate } from "../../hooks/useRehydrate";
-import { otherDoramasOf } from "../../utils/derivations";
+import { buildCanonicalIdMap, canonicalId, otherDoramasOf } from "../../utils/derivations";
 import { thumbUrl } from "../../utils/images";
 import type { CastMember, DoramaRecord } from "../../types/models";
 
@@ -14,6 +14,7 @@ export function DoramaDetailScreen({ doramaId }: { doramaId: string }) {
   const { removeDorama } = useCatalogActions();
   const { rehydrateOne, busy: rehydrating, error: rehydrateError } = useRehydrate();
   const [enrichedMsg, setEnrichedMsg] = useState<string | null>(null);
+  const canonicalMap = useMemo(() => buildCanonicalIdMap(doramas), [doramas]);
   const dorama = doramas.find((d) => d.id === doramaId);
 
   if (!dorama) {
@@ -127,7 +128,12 @@ export function DoramaDetailScreen({ doramaId }: { doramaId: string }) {
         </h3>
         <div className="grid gap-3 sm:grid-cols-2">
           {dorama.cast.map((member) => (
-            <CastRow key={member.personId} dorama={dorama} member={member} />
+            <CastRow
+              key={member.personId}
+              dorama={dorama}
+              member={member}
+              canonicalPersonId={canonicalId(member, canonicalMap)}
+            />
           ))}
         </div>
       </section>
@@ -135,10 +141,18 @@ export function DoramaDetailScreen({ doramaId }: { doramaId: string }) {
   );
 }
 
-function CastRow({ dorama, member }: { dorama: DoramaRecord; member: CastMember }) {
+function CastRow({
+  dorama,
+  member,
+  canonicalPersonId,
+}: {
+  dorama: DoramaRecord;
+  member: CastMember;
+  canonicalPersonId: string;
+}) {
   const doramas = useCatalogStore((s) => s.doramas);
   const navigate = useCatalogStore((s) => s.navigate);
-  const others = otherDoramasOf(doramas, member.personId, dorama.id);
+  const others = otherDoramasOf(doramas, canonicalPersonId, dorama.id);
   const imgSrc = thumbUrl(member.profileImgUrl);
 
   return (
@@ -157,7 +171,7 @@ function CastRow({ dorama, member }: { dorama: DoramaRecord; member: CastMember 
       )}
       <div className="min-w-0 flex-1">
         <button
-          onClick={() => navigate({ name: "ator-detail", personId: member.personId })}
+          onClick={() => navigate({ name: "ator-detail", personId: canonicalPersonId })}
           className="flex items-center gap-1.5 text-sm font-semibold text-gray-100 transition-colors hover:text-white"
         >
           <span className="truncate">{member.name}</span>

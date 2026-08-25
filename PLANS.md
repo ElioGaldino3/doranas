@@ -186,21 +186,64 @@ progresso. Uma seção por tarefa ativa; remover ao concluir.
 
 ---
 
-## Remanescentes p�s-Fase 4 (2� leva) � 2026-08-25
+## Remanescentes p�s-Fase 4 (2� leva) � 2026-08-25
 
-**Conclu�das**: remover `@types/jspdf`, limiares de cobertura, auto-re-hidrata��o
+**Conclu�das**: remover `@types/jspdf`, limiares de cobertura, auto-re-hidrata��o
 em background. **Adiado (analisado)**: subset da fonte CJK.
 
-- `3b393c2` build(deps): remove `@types/jspdf` obsoleto (jspdf v4 j� traz tipos).
+- `3b393c2` build(deps): remove `@types/jspdf` obsoleto (jspdf v4 j� traz tipos).
 - `4cd6b81` test(coverage): define limiares globais de cobertura no vitest.
-- `c1bb3fc` feat(rehydrate): auto-re-hidrata��o de pendentes em background.
-- Subset CJK: **adiado** � build-time est�tico reduz s� ~3% (coreano exige o
-  bloco Hangul completo); runtime por t�tulo (~19 KB) exigiria `subset-font`
-  (node-only/WASM) no browser � invi�vel sem bundling fr�gil. Mantido: fonte
-  completa carregada sob demanda s� quando h� CJK. Ver `docs/MEMORIES.md`.
+- `c1bb3fc` feat(rehydrate): auto-re-hidrata��o de pendentes em background.
+- Subset CJK: **adiado** � build-time est�tico reduz s� ~3% (coreano exige o
+  bloco Hangul completo); runtime por t�tulo (~19 KB) exigiria `subset-font`
+  (node-only/WASM) no browser � invi�vel sem bundling fr�gil. Mantido: fonte
+  completa carregada sob demanda s� quando h� CJK. Ver `docs/MEMORIES.md`.
 
-### Verifica��o (verde)
+### Verifica��o (verde)
 - ? `npm test` (**75**), ? `npm run lint`, ? `npm run build`, ? `npx tsc -b`,
   ? `npm run test:coverage` (limiares OK), ? `npm audit` (0).
+
+---
+
+## ✅ Concluída: Fase 5 — Dedup de atores (id canônico)
+
+**Concluída em**: 2026-08-25 | **Commit**: _(commit da Fase 5, abaixo)_
+
+### Problema
+O mesmo ator físico podia aparecer com `personId` **divergente** entre doramas
+— TMDB id (ex.: `"12345"`) num dorama migrado e Wikidata QID (`"Q678"`) noutro
+vindo só do Wikidata. Isso o dividia em "atores" separados na tela de Atores,
+quebrava os cross-references ("também em…") e a página de detalhe do ator (só
+listava 1 dorama).
+
+### Entregue (dedup em nível de leitura, não destrutivo)
+- `src/utils/derivations.ts`:
+  - `actorIds(member)` — ids pelos quais um membro pode ser referenciado
+    (`[wikidataId, personId]`, priorizando o QID).
+  - `buildCanonicalIdMap(doramas)` — union-find de TMDB id ↔ QID → id canônico
+    (prefere `wikidataId` na classe). Resolve a divergência sem tocar nos dados
+    persistidos.
+  - `canonicalId(member, map)`.
+  - `actorsByAppearance`, `otherDoramasOf`, `doramasOfPerson` agora agrupam/
+    buscam pelo id canônico.
+- UI: `AtorDetailScreen` (lookup por id canônico) e `DoramaDetailScreen`
+  (`CastRow` navega/cruza pelo id canônico). `AtoresScreen` já consumia
+  `ActorAppearance.personId`, que passou a ser o id canônico — sem mudança.
+- **Testes**: +7 em `tests/derivations.test.ts` (mapa canônico, unificação do
+  ator splitado em 1 entrada com 2 aparições, `doramasOfPerson`/`otherDoramasOf`
+  cruzando o split, não-fusão de atores distintos). Total: **82**.
+
+### Decisões relevantes
+- **Dedup não destrutivo**: canonicalização em tempo de leitura (derivações
+  puras), sem reescrever `CastMember.personId` persistido. Preserva os dados
+  originais e é reversível; evita risco de corromper o histórico.
+- **Limite conhecido**: ator só-Wikidata num dorama (id `Q678`) vs ator TMDB
+  num dorama manual ainda não re-hidratado (id `123`, sem `wikidataId`)
+  continua separado — não há casamento de nome (fuzzy matching é arriscado:
+  nomes iguais ≠ mesma pessoa, grafias variam). Resolvido naturalmente quando o
+  dorama manual é re-hidratado (ganha `wikidataId`).
+
+### Verificação (verde)
+- ✅ `npm test` (82), ✅ `npm run lint`, ✅ `npm run build`, ✅ `npx tsc -b`.
 
 ---

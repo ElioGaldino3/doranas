@@ -12,6 +12,35 @@ export interface ExportDorama {
   actorCount: number;
 }
 
+/** Fonte custom (TTF) para títulos coreano/japonês, em `public/fonts/`. */
+const CJK_FONT_URL = "/fonts/NanumGothic-Regular.ttf";
+const CJK_FONT_NAME = "NanumGothic";
+
+let cjkFontCache: string | null = null;
+
+/** Busca o TTF da fonte CJK e o devolve como binary string (com cache). */
+export async function loadCjkFont(): Promise<string> {
+  if (cjkFontCache) return cjkFontCache;
+  const res = await fetch(CJK_FONT_URL);
+  if (!res.ok) throw new Error("Falha ao carregar a fonte CJK");
+  const buf = await res.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  cjkFontCache = binary;
+  return binary;
+}
+
+/** Registra a fonte custom TTF no documento. jsPDF exige TTF (WOFF não parseia). */
+export function registerCjkFont(
+  pdf: jsPDF,
+  fontBinary: string,
+  fontName = CJK_FONT_NAME,
+): void {
+  pdf.addFileToVFS(CJK_FONT_URL, fontBinary);
+  pdf.addFont(CJK_FONT_URL, fontName, "normal");
+}
+
 interface ColumnLayout {
   numW: number;
   titleX: number;
@@ -113,19 +142,26 @@ function titleLines(pdf: jsPDF, title: string, maxWidth: number): string[] {
  * Exporta uma lista de doramas para PDF (A4). Fonte de dados é o catálogo
  * v2 (id, título, ano, nº de atores) — independe do modelo de grafo.
  *
- * Limitação conhecida: jsPDF com a fonte padrão helvetica só cobre latin-1;
- * títulos em coreano/japonês podem sair como caracteres ilegíveis. Para
- * suporte CJK completo seria preciso registrar uma fonte WOFF (fase futura).
+ * Títulos coreano/japonês exigem fonte custom (TTF) registrada via
+ * `opts.cjkFont` (use `loadCjkFont()`); sem ela o export cai na helvetica
+ * (latin-1) — títulos CJK ficam ilegíveis. Chrome/números/count usam helvetica.
  *
  * Retorna o documento gerado para permitir testes; o download é feito pelo
  * chamador.
  */
-export function buildDoramaPdf(doramas: ExportDorama[]): jsPDF {
+export function buildDoramaPdf(
+  doramas: ExportDorama[],
+  opts?: { cjkFont?: string },
+): jsPDF {
   if (doramas.length === 0) {
     throw new Error("Nenhum dorama para exportar");
   }
 
   const pdf = new jsPDF("p", "mm", "a4");
+  const useCjk = Boolean(opts?.cjkFont);
+  if (useCjk) {
+    registerCjkFont(pdf, opts!.cjkFont!);
+  }
   const cols = buildColumns(pdf.internal.pageSize.getWidth());
 
   drawHeader(pdf, doramas.length);
@@ -144,19 +180,25 @@ export function buildDoramaPdf(doramas: ExportDorama[]): jsPDF {
     }
 
     const label = d.year ? `${d.title} (${d.year})` : d.title;
+
+    // Split e desenho do título na fonte certa (métricas corretas).
+    if (useCjk) pdf.setFont(CJK_FONT_NAME, "normal");
     const lines = titleLines(pdf, label, cols.titleW);
 
     if (lines.length > 0) {
       pdf.setTextColor(...COLORS.text);
       pdf.setFontSize(8);
+      pdf.setFont("helvetica", "normal");
       pdf.text(String(i + 1), MARGIN_L + 2, y);
 
       const titleY = y;
+      if (useCjk) pdf.setFont(CJK_FONT_NAME, "normal");
       lines.forEach((line, lineIdx) => {
         // sem quebrar no meio; se exceder o limite, deixa o loop fluxo tratar
         pdf.text(line, cols.titleX, titleY + lineIdx * 4);
       });
 
+      pdf.setFont("helvetica", "normal");
       pdf.text(String(d.actorCount), cols.countRightX, y);
       lines.forEach((_line, lineIdx) => {
         pdf.setDrawColor(...COLORS.grid);

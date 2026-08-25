@@ -3,7 +3,7 @@ import { Film, FileDown, Loader2, Sparkles, Star, Trash2 } from "lucide-react";
 import { useCatalogStore } from "../../store/catalogStore";
 import { useCatalogActions } from "../../hooks/useCatalogActions";
 import { useRehydrate } from "../../hooks/useRehydrate";
-import { buildDoramaPdf, type ExportDorama } from "../../utils/exportPdf";
+import { buildDoramaPdf, loadCjkFont, type ExportDorama } from "../../utils/exportPdf";
 import type { DoramaRecord } from "../../types/models";
 
 /** Tela "Doramas": grade de cards do catálogo + ações de exportar PDF e limpar. */
@@ -13,19 +13,27 @@ export function DoramasScreen() {
   const { clearAll } = useCatalogActions();
   const { rehydrateAll, busy: syncing, progress: syncProgress, error: syncError } = useRehydrate();
   const [syncedMsg, setSyncedMsg] = useState<string | null>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
 
   const pendingCount = doramas.filter((d) => d.wikidataId == null).length;
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     if (doramas.length === 0) return;
-    const list: ExportDorama[] = doramas.map((d) => ({
-      id: d.id,
-      title: d.title,
-      year: d.year,
-      actorCount: d.cast.length,
-    }));
-    const pdf = buildDoramaPdf(list);
-    pdf.save("doramas-assistidos.pdf");
+    setPdfBusy(true);
+    try {
+      // Fonte CJK: baixa sob demanda; sem ela (falha/offline) cai na helvetica.
+      const cjkFont = await loadCjkFont().catch(() => undefined);
+      const list: ExportDorama[] = doramas.map((d) => ({
+        id: d.id,
+        title: d.title,
+        year: d.year,
+        actorCount: d.cast.length,
+      }));
+      const pdf = buildDoramaPdf(list, cjkFont ? { cjkFont } : undefined);
+      pdf.save("doramas-assistidos.pdf");
+    } finally {
+      setPdfBusy(false);
+    }
   };
 
   const handleSync = async () => {
@@ -71,10 +79,15 @@ export function DoramasScreen() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={handleExportPdf}
-            className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-gray-400 transition-all duration-200 hover:border-amber-500/30 hover:bg-amber-950/20 hover:text-amber-400"
+            disabled={pdfBusy}
+            className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-gray-400 transition-all duration-200 hover:border-amber-500/30 hover:bg-amber-950/20 hover:text-amber-400 disabled:opacity-40"
           >
-            <FileDown className="h-4 w-4" />
-            Exportar PDF
+            {pdfBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileDown className="h-4 w-4" />
+            )}
+            {pdfBusy ? "Preparando PDF…" : "Exportar PDF"}
           </button>
           <button
             onClick={handleSync}

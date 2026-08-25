@@ -16,7 +16,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "types": ["vitest/globals", "vitest/jsdom"]
+    "types": ["vitest/globals", "vitest/jsdom", "node"]
   },
   "include": ["src", "tests"]
 }

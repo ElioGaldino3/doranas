@@ -149,3 +149,39 @@ progresso. Uma seção por tarefa ativa; remover ao concluir.
   ✅ `npx tsc -b`.
 
 ---
+
+## ✅ Concluída: Pendências fora de escopo da Fase 4
+
+**Concluída em**: 2026-08-25 | **Commits**: `feat(wikidata)`,
+`test(coverage)`, `feat(pdf)`, `chore(audit)` e docs (abaixo).
+
+### P1 — Re-hidratação Wikidata (adds manuais)
+- `enrichDoramaWithWikidata` (pura, idempotente) em `derivations.ts`.
+- `src/services/rehydrate.ts`: `rehydrateDoramas` com deps injetadas (padrão
+  migration) — processa só `wikidataId == null`, resolve QIDs + elenco em lote
+  (pacing/retry), não persiste por conta própria.
+- `catalogStore.updateDorama` + `useCatalogActions.updateDorama`.
+- `src/hooks/useRehydrate.ts`: `rehydrateOne`/`rehydrateAll` + `busy`/`progress`/`error`.
+- UI: botão "Enriquecer elenco (Wikidata)" no detalhe; "Sincronizar Wikidata"
+  (badge de pendentes + progresso) na lista.
+
+### P2 — Cobertura de testes
+- Instalado `@vitest/coverage-v8`; `npm run test:coverage` agora roda (v8).
+
+### P3 — Suporte CJK no PDF
+- `public/fonts/NanumGothic-Regular.ttf` + `OFL.txt` (~2MB, licença OFL).
+- `exportPdf.ts`: `loadCjkFont()` (fetch + cache), `registerCjkFont()` e
+  `buildDoramaPdf(doramas, { cjkFont? })` — títulos em hangul/japonês usam a
+  fonte custom; chrome/números continuam em helvetica; fallback sem a fonte.
+- Handler do export virou async ("Preparando PDF…"); `@types/node` + `"node"`
+  nos types da tsconfig (para ler o TTF em teste).
+
+### P4 — npm audit
+- `npm audit fix`: `dompurify` 3.4.12→3.4.14, `postcss` 8.5.16→8.5.26,
+  `nanoid` 3.3.15→3.3.18 → **0 vulnerabilidades**.
+
+### Verificação (verde)
+- ✅ `npm test` (**72**), ✅ `npm run lint`, ✅ `npm run build`, ✅ `npx tsc -b`,
+  ✅ `npm audit` (0), ✅ `npm run test:coverage`.
+
+---

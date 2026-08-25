@@ -6,6 +6,46 @@ Registre aqui toda informação nova e durável em vez de repetir no
 
 ## Registros
 
+### Pendências pós-Fase 4 — re-hidratação, cobertura, CJK e audit — 2026-08-25
+- **Re-hidratação Wikidata** (adds manuais são TMDB-only):
+  - `enrichDoramaWithWikidata(dorama, qid, wikiRows)` (pura, idempotente) —
+    seta `wikidataId` e faz `applyProtagonistHeuristic(mergeCast(cast, rows))`.
+  - `src/services/rehydrate.ts` → `rehydrateDoramas(doramas, deps)` (deps
+    injetadas como em `migration.ts`): processa só `wikidataId == null`;
+    resolve QIDs no lote (`resolveSeriesQidsByTmdbIds`) + elenco em lote
+    (`fetchCastForQids`, pacing/retry); **não persiste** (quem chama cuida);
+    falha de lote propaga sem mutar estado. Progresso via `onProgress`.
+  - `catalogStore.updateDorama` + `useCatalogActions.updateDorama` (store +
+    `writeV2Doc`).
+  - `src/hooks/useRehydrate.ts`: `rehydrateOne(id)` e `rehydrateAll()` com
+    `busy`/`progress`/`error`; atualiza o store e persiste por dorama
+    (recuperação parcial).
+  - UI: "Enriquecer elenco (Wikidata)" no `DoramaDetailScreen` (só quando
+    `wikidataId == null`); "Sincronizar Wikidata" na `DoramasScreen` (badge de
+    pendentes, progresso inline, disabled com 0 pendentes).
+  - Dorama sem QID na cobertura do Wikidata permanece `null` (retentado no
+    próximo lote — custo baixo).
+- **Cobertura**: `@vitest/coverage-v8` instalado — `npm run test:coverage` roda
+  (provider v8). Sem limiares.
+- **CJK no PDF**:
+  - `public/fonts/NanumGothic-Regular.ttf` (+`OFL.txt`, ~2MB, **OFL 1.1**) —
+  Google Fonts (repo `google/fonts`, `ofl/nanumgothic`). Asset estático, fora
+  do bundle JS; carregada sob demanda no export.
+  - jsPDF exige **TTF** (magic `\x00\x01\x00\x00`; WOFF não parseia). Padrão:
+  `addFileToVFS` → `addFont` → `setFont`.
+  - `exportPdf.ts`: `loadCjkFont()` (fetch + cache em módulo),
+  `registerCjkFont(pdf, binary, name?)`, `buildDoramaPdf(doramas,
+  { cjkFont? })` — **só os títulos** usam a fonte CJK (chrome/nº/count ficam em
+  helvetica, que cobre latin-1 pt-BR como "Título"); sem a fonte → helvetica
+  (fallback, títulos CJK ilegíveis).
+  - `@types/node` adicionado e `"node"` em `tsconfig.types` (o `types` restrito
+  não inclui packages globais; necessário p/ `node:fs` nos testes).
+- **Audit**: `npm audit fix` (sem `--force`) atualizou transitivas protegidas:
+  `dompurify` 3.4.12→3.4.14 (via jspdf, runtime), `postcss` 8.5.16→8.5.26 e
+  `nanoid` 3.3.15→3.3.18 (via vite, dev) → **0 vulnerabilidades**.
+  - Nota: `eslint-visitor-keys@5` (via typescript-eslint, dev) pede Node
+    ≥22.13 — roda OK no Node 22.4, apenas `EBADENGINE` warning.
+
 ### UI do catálogo v2 + remoção do grafo (Fase 4) — 2026-08-25
 - **Init no entry**: `App` chama `useAppInit` e **gating** — enquanto
   `loading`, renderiza `InitScreen` (splash com barra de progresso `done/total`

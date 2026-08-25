@@ -6,9 +6,10 @@ import {
   actorsByAppearance,
   otherDoramasOf,
   doramasOfPerson,
+  doramaFromTmdb,
 } from "../src/utils/derivations";
 import type { CastMember, DoramaRecord } from "../src/types/models";
-import type { CastResult } from "../src/types/tmdb";
+import type { CastResult, SeriesDetails } from "../src/types/tmdb";
 import type { WikidataCastRow } from "../src/types/wikidata";
 
 const member = (personId: string, order: number | null): CastMember => ({
@@ -104,5 +105,46 @@ describe("otherDoramasOf / doramasOfPerson", () => {
     const all = doramasOfPerson(doramas, "a");
     expect(all).toHaveLength(2);
     expect(all[1]).toMatchObject({ id: "d2", year: 2020, protagonist: true });
+  });
+});
+
+describe("doramaFromTmdb", () => {
+  const details = (overrides?: Partial<SeriesDetails>): SeriesDetails => ({
+    id: 42,
+    name: "Crash Landing on You",
+    first_air_date: "2019-12-14",
+    overview: "Sinopse",
+    poster_path: "/p42.jpg",
+    ...overrides,
+  });
+
+  const cast4: CastResult[] = [
+    { id: 1, name: "A", profile_path: "/a.jpg", character: "..." },
+    { id: 2, name: "B", profile_path: null, character: "..." },
+    { id: 3, name: "C", profile_path: null, character: "..." },
+    { id: 4, name: "D", profile_path: null, character: "..." },
+  ];
+
+  it("monta o record v2 com ano, poster e wikidataId null", () => {
+    const rec = doramaFromTmdb(details(), cast4, (p) => `https://img${p}`);
+    expect(rec.id).toBe("42");
+    expect(rec.title).toBe("Crash Landing on You");
+    expect(rec.year).toBe(2019);
+    expect(rec.posterUrl).toBe("https://img/p42.jpg");
+    expect(rec.wikidataId).toBeNull();
+    expect(rec.cast).toHaveLength(4);
+  });
+
+  it("marca protagonistas pelos N primeiros do billing", () => {
+    const rec = doramaFromTmdb(details(), cast4);
+    const protags = rec.cast.filter((m) => m.protagonist).map((m) => m.personId);
+    expect(protags).toEqual(["1", "2", "3"]);
+    expect(rec.cast[3].order).toBe(3);
+    expect(rec.cast[3].protagonist).toBe(false);
+  });
+
+  it("year null quando não há first_air_date", () => {
+    const rec = doramaFromTmdb(details({ first_air_date: null }), cast4);
+    expect(rec.year).toBeNull();
   });
 });

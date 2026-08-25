@@ -35,4 +35,21 @@ describe("useCatalogStore", () => {
     setDoramas([dorama("1"), dorama("2")]);
     expect(useCatalogStore.getState().doramas).toHaveLength(2);
   });
+
+  it("removeDorama remove pelo id", () => {
+    const { addDorama, removeDorama } = useCatalogStore.getState();
+    addDorama(dorama("1"));
+    addDorama(dorama("2"));
+    removeDorama("1");
+    expect(useCatalogStore.getState().doramas).toHaveLength(1);
+    expect(useCatalogStore.getState().doramas[0].id).toBe("2");
+  });
+
+  it("clearAll esvazia o catálogo", () => {
+    const { addDorama, clearAll } = useCatalogStore.getState();
+    addDorama(dorama("1"));
+    addDorama(dorama("2"));
+    clearAll();
+    expect(useCatalogStore.getState().doramas).toEqual([]);
+  });
 });

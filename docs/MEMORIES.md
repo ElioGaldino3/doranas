@@ -6,6 +6,27 @@ Registre aqui toda informação nova e durável em vez de repetir no
 
 ## Registros
 
+### Setup de testes + lint (Fase 0) — 2026-08-25
+- **Vitest 4.1.x + React Testing Library (jsdom)**. `engines` do Vitest 4:
+  `^20.0.0 || ^22.0.0 || >=24.0.0`; requer **Vite ≥ 6.4**. Config no bloco
+  `test` de `vite.config.ts` (`environment: "jsdom"`, `setupFiles:
+  ./tests/setup.ts`, `globals: true`). tsconfig ganhou
+  `"types": ["vitest/globals", "vitest/jsdom"]` e `include: ["src", "tests"]`.
+- **Gotcha jsdom**: `jsdom@30` quebra em runtime com `ERR_REQUIRE_ESM`
+  (via `html-encoding-sniffer@6` → `@exodus/bytes`, ESM-only). **Fix: usar
+  `jsdom@^26`** (estável, compatível).
+- **ESLint 9 (flat config)** em `eslint.config.js`, com `@eslint/js` +
+  `typescript-eslint@8` + `eslint-plugin-react-hooks@7`. `npm run lint` era
+  um script sem dep instalada; agora roda de verdade.
+- **Baseline de lint**: arquivos legados do modelo de grafo estão **ignorados**
+  no `eslint.config.js` (ex.: `src/components/graph/**`,
+  `src/store/graphStore.ts`, `src/hooks/useLocalStorageGraph.ts`,
+  `src/types/d3-force-3d.d.ts`, `src/types/graph.ts`). São removidos/reescritos
+  na **Fase 4** (redesign sem gráficos); evita retrabalho em código descartado.
+  **Remover os ignores quando o grafo sair.**
+- Cobertura: `npm run test:coverage` (exige `@vitest/coverage-v8` — instalar
+  quando for usar; não instalado ainda).
+
 ### Export de PDF (`src/utils/exportPdf.ts`) — 2026-08-25
 - A implementação original gerava uma **tabela textual** de doramas (nº,
   título, nº de atores) — o `tasks.md` (T037) previa exportar a **imagem do

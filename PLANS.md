@@ -5,67 +5,51 @@ progresso. Uma seção por tarefa ativa; remover ao concluir.
 
 ---
 
-## Tarefa ativa: Fase 0 — Infra de testes + lint
+## ✅ Concluída: Fase 0 — Infra de testes + lint
 
-**Status**: 🔒 BLOQUEADA — falta rede para o npm registry (DNS/timeout).
-**Última atualização**: 2026-08-25
+**Concluída em**: 2026-08-25 | **Commit**: _(ver itens abaixo, commit da Fase 0)_
 
-### Objetivo
-Destravar o loop de verificação (typecheck/lint/test) para as próximas fases
-(Wikidata, redesenho sem grafo, migração v2). Adicionar o setup que **hoje não
-existe**: Vitest + React Testing Library + ESLint.
+### O que foi entregue
+- **Vitest 4.1.x + React Testing Library (jsdom)**: config no bloco `test` de
+  `vite.config.ts`; setup em `tests/setup.ts`; tsconfig com
+  `types: ["vitest/globals", "vitest/jsdom"]` e `include: ["src", "tests"]`.
+- **Scripts**: `test`, `test:watch`, `test:coverage` no `package.json`.
+- **ESLint 9 (flat config)** em `eslint.config.js` — `npm run lint` agora roda
+  de verdade (antes era script sem dep instalada).
+- **10 testes iniciais** (3 arquivos): `deduplicate`, `graphStore`,
+  `exportPdf`.
 
-### Requisitos verificados (fatos)
-- **Node atual: v22.4.0** — **ABAIXO** do mínimo do Vitest 4 (Node **≥ 22.12**).
-- Project: `vite ^6.0.0` (instalado **6.4.3** na última verificação) — ok para
-  Vitest 4 (peer `^6.4.0 || ^7 || ^8`).
-- `npm run lint` hoje falha: script `eslint .` existe no `package.json`, mas
-  **ESLint não está instalado** nem configurado.
-- Context7 esteve indisponível (DNS `mcp.context7.com`) durante a tentativa.
+### Decisões relevantes
+- **Node 22.4 é compatível**: o `engines` real do Vitest 4.1.11 é
+  `^20.0.0 || ^22.0.0 || >=24.0.0` (a doc no branch main diz "≥22.12", mas o
+  pacote aceita 22.x). **Não foi preciso atualizar o Node.**
+- **Gotcha jsdom**: `jsdom@30` quebra (`ERR_REQUIRE_ESM` via
+  `html-encoding-sniffer@6` → `@exodus/bytes`). **Fix: `jsdom@^26`.**
+- **Baseline de lint**: arquivos legados do grafo ignorados no
+  `eslint.config.js` (serão removidos na Fase 4). Ver `docs/MEMORIES.md`.
 
-### Plano (retomar quando a rede voltar)
-1. Confirmar/atualizar Node para **≥ 22.12** (Vitest 4) — OU decidir Vitest 3.x
-   (compatível Node 22.4) se preferir não mexer no Node.
-2. Bump `vite ^6.0.0` → `^6.4.0` no `package.json` (se ainda estiver < 6.4).
-3. DevDeps a adicionar:
-   - `vitest` (^4.1.6 ou 3.x conforme decisão do Node)
-   - `jsdom`, `@testing-library/react ^16`, `@testing-library/jest-dom ^6`,
-     `@testing-library/user-event ^14`
-   - `eslint ^9`, `typescript-eslint ^8`, `eslint-plugin-react-hooks`
-4. Scripts: `"test": "vitest run"`, `"test:watch": "vitest"`,
-   `"test:coverage": "vitest run --coverage"`.
-5. `vite.config.ts`: bloco `test` (environment `jsdom`, setupFiles, globals) +
-   `/// <reference types="vitest/config" />`. `tsconfig.json`: adicionar
-   `"types": ["vitest/jsdom"]`. Criar `tests/setup.ts` + `eslint.config.js`
-   (flat, react-hooks + TS recomendado).
-6. Smoke + primeiros testes reais:
-   - `src/utils/deduplicate.ts` (função pura)
-   - export: teste do `buildDoramaPdf` (retorna jsPDF, sem download)
-   - `src/store/graphStore.ts` (lógica de addDorama/removeDorama — já pura de
-     UI, fácil de testar)
-7. **Done**: `npm test && npx tsc -b && npm run build` verdes; decidir o que
-   fazer com `eslint` (ver nota abaixo).
+### Verificação (tudo verde)
+- ✅ `npm test` — 10 testes passando
+- ✅ `npm run lint` — 0 erros
+- ✅ `npm run build` (tsc + vite)
+- Obs: `npm run test:coverage` exige `@vitest/coverage-v8` (não instalado).
 
-### Progresso
-- [x] Investigação (versões, requisitos, blockers identificados)
-- [ ] Instalar dependências (bloqueado por rede)
-- [ ] Configurar vitest/eslint
-- [ ] Testes iniciais
-- [ ] Verificação + commit
+---
 
-### Decisão em aberto — ESLint
-O `npm run lint` nunca funcionou (sem dep). Duas opções para a Fase 0:
-- **(a)** Adicionar ESLint de verdade (flat config) e fazer `lint` verde.
-- **(b)** Corrigir: hoje o script existe mas quebra; ou instalar e corrigir os
-  erros, ou remover o script até o lint existir. Recomendação: **(a)** —
-  completar o loop de verificação conforme o AGENTS.md exige "rodar
-  lint/typecheck/build".
+## Tarefa ativa: Fase 1 — Serviço Wikidata (SPARQL) + types
 
-### Bloqueio atual
-- `registry.npmjs.org` inacessível (DNS/timeout) — impossível instalar deps.
-- Node 22.4 < 22.12 (se for usar Vitest 4).
+**Status**: ⏳ Pendente (aguarda execução).
+**Plano completo**: ver `C:\Users\eliog\.opencode\plan\wikidata-redesign.md`
+(seções Fase 1+ e o conteúdo para este PLANS.md).
 
-### Próximo passo ao desbloquear
-Rodar `npm install -D <devDeps da fase 0>` e seguir o plano; depois commitar
-tudo coeso (bump vite + config + script + testes + AGENTS/WINDOWS/LINUX
-atualizados com o comando `npm test`).
+### Resumo do que vem (referência)
+1. Fase 1 — `services/wikidata.ts` (SPARQL), `types/wikidata.ts`, testes com
+   `fetch` mockado. Endpoint/limits/props já validados ao vivo (P161, P4983,
+   P4985, P18).
+2. Fase 2 — Modelo v2 (`DoramaRecord`/`CastMember`), `catalogStore`,
+   derivações + remoção do grafo.
+3. Fase 3 — Migração automática v1→v2 (backup, rehidratação TMDB, Wikidata em
+   lote, progresso, parcial `migrationPending`).
+4. Fase 4 — UI: telas Doramas/Atores + detalhes, nav no topo, remoção do
+   grafo. **Remover ignores de grafo do `eslint.config.js` aqui.**
+5. Fase 5 — Docs (MEMORIES/AGENTS/PLANS) + verificação final.

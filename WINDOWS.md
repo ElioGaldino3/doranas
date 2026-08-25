@@ -19,7 +19,8 @@ npm install
 | Lint          | `npm run lint`       |
 | Build         | `npm run build`      |
 | Preview       | `npm run preview`    |
-| Testes        | não configurado ainda |
+| Testes        | `npm test`           |
+| Testes (watch)| `npm run test:watch` |
 
 Filtre sempre o output dos comandos ao que importa (erros/resumos).
 

@@ -43,13 +43,14 @@ Comandos prontos (já com filtro de output):
 | Lint          | `npm run lint`   |
 | Build         | `npm run build`  |
 | Preview       | `npm run preview`|
-| Testes        | `npm test` — **não existe ainda** |
+| Testes        | `npm test`       |
+| Testes (watch)| `npm run test:watch` |
+| Cobertura     | `npm run test:coverage` |
 
-> **Testes**: o `specs/002-local-dorama-graph/plan.md` prevê Vitest +
-> React Testing Library, mas **hoje não há** script `test` nem Vitest
-> instalado. Criar o setup de teste é uma tarefa à parte; quando for feito,
-> versione o script em `package.json` e atualize esta tabela. Não invente
-> testes nem rode `npm test` antes do setup existir.
+> **Testes**: Vitest 4 + React Testing Library (jsdom). Requer **Node ≥ 20.0**
+> (engines do Vitest 4.1: `^20.0.0 || ^22.0.0 || >=24.0.0`) e **Vite ≥ 6.4**.
+> Configuração em `vite.config.ts` (bloco `test`), setup em `tests/setup.ts`.
+> ESLint 9 (flat config) em `eslint.config.js`.
 
 **Regra de filtragem de output**: restrinja sempre a saída de comandos ao
 que importa (apenas linhas de erro, resumos, chaves). Nunca despeje o
@@ -91,11 +92,17 @@ doranas/
 │   └── MEMORIES.md       # memória durável do projeto (decisões, gotchas)
 ├── index.html            # HTML raiz do SPA (monta #root, fonte Inter)
 ├── netlify.toml          # build (npm run build) + redirect SPA /* → /index.html
-├── package.json          # scripts (dev/build/preview/lint) e deps
+├── package.json          # scripts (dev/build/preview/lint/test) e deps
 ├── package-lock.json     # lockfile
 ├── tsconfig.json         # strict TS, ES2020, moduleResolution bundler, noEmit
 ├── tsconfig.tsbuildinfo  # cache incremental do tsc (gerado, ignorado de fato)
-├── vite.config.ts        # plugins react + tailwindcss
+├── vite.config.ts        # plugins react + tailwindcss + bloco test (vitest/jsdom)
+├── eslint.config.js      # ESLint 9 flat (ignora código legado do grafo — Fase 4)
+├── tests/
+│   ├── setup.ts                  # import @testing-library/jest-dom/vitest
+│   ├── deduplicate.test.ts       # testes de src/utils/deduplicate
+│   ├── graphStore.test.ts        # testes de addDorama/removeDorama
+│   └── exportPdf.test.ts         # testes do buildDoramaPdf
 └── src/
     ├── main.tsx          # entry: React root + import de styles/index.css
     ├── App.tsx           # layout: sidebar (toggle mobile) + GraphCanvas

@@ -1,5 +1,6 @@
 import { useCatalogStore } from "../store/catalogStore";
 import { writeV2Doc } from "../services/persistence";
+import { mergeDoramas } from "../utils/backup";
 import type { DoramaRecord } from "../types/models";
 
 /**
@@ -34,5 +35,17 @@ export function useCatalogActions() {
     persist();
   };
 
-  return { addDorama, updateDorama, removeDorama, clearAll };
+  /**
+   * Importa doramas de um backup (já validado/parseado) mesclando-os ao
+   * catálogo atual por TMDB id. Retorna false se a persistência falhar
+   * (ex.: quota do localStorage).
+   */
+  const importDoramas = (records: DoramaRecord[]): boolean => {
+    const current = useCatalogStore.getState().doramas;
+    const merged = mergeDoramas(current, records);
+    useCatalogStore.getState().setDoramas(merged);
+    return writeV2Doc(merged);
+  };
+
+  return { addDorama, updateDorama, removeDorama, clearAll, importDoramas };
 }

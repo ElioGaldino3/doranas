@@ -94,6 +94,21 @@ Registre aqui toda informação nova e durável em vez de repetir no
 - **Decisão**: não reescrever `CastMember.personId` persistido — mantém dados
   originais e é reversível.
 
+### Backup/Restore JSON (Fase 6) — 2026-08-25
+- **Portabilidade do catálogo**: antes os dados viviam só no `localStorage`
+  (`dorama_graph_data`); sem cópia de segurança. Agora exporta/importa `.json`.
+- `src/utils/backup.ts` (puro): `serializeCatalog` (→ `DoramaDocument` v2),
+  `parseBackup` (aceita **doc v2 OU array cru**; lança em inválido/incompatível),
+  `mergeDoramas` (mescla por TMDB id, **sem mutar inputs**; importado prevalece
+  em colisão; preserva existentes ausentes — não-destrutivo),
+  `BACKUP_FILENAME="dorama-actors-backup.json"`.
+- `useCatalogActions.importDoramas(records)`: mescla no store + persiste
+  (`writeV2Doc`); retorna `false` em falha de quota. UI em `DoramasScreen`
+  (botões Exportar/Importar JSON + banners); import acessível no estado vazio.
+- **Decisão**: **merge, não replace** (postura não-destrutiva, igual Fase 5);
+  download/Blob fica no componente e `FileReader` na UI (lógica pura testada
+  no util, como o `buildDoramaPdf`).
+
 ### UI do catálogo v2 + remoção do grafo (Fase 4) — 2026-08-25
 - **Init no entry**: `App` chama `useAppInit` e **gating** — enquanto
   `loading`, renderiza `InitScreen` (splash com barra de progresso `done/total`

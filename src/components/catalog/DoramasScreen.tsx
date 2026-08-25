@@ -1,19 +1,23 @@
-import { useState } from "react";
-import { Film, FileDown, Loader2, Sparkles, Star, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { Film, FileDown, FileJson, Loader2, Sparkles, Star, Trash2, Upload } from "lucide-react";
 import { useCatalogStore } from "../../store/catalogStore";
 import { useCatalogActions } from "../../hooks/useCatalogActions";
 import { useRehydrate } from "../../hooks/useRehydrate";
 import { buildDoramaPdf, loadCjkFont, type ExportDorama } from "../../utils/exportPdf";
+import { serializeCatalog, parseBackup, BACKUP_FILENAME } from "../../utils/backup";
 import type { DoramaRecord } from "../../types/models";
 
 /** Tela "Doramas": grade de cards do catálogo + ações de exportar PDF e limpar. */
 export function DoramasScreen() {
   const doramas = useCatalogStore((s) => s.doramas);
   const navigate = useCatalogStore((s) => s.navigate);
-  const { clearAll } = useCatalogActions();
+  const { clearAll, importDoramas } = useCatalogActions();
   const { rehydrateAll, busy: syncing, progress: syncProgress, error: syncError } = useRehydrate();
   const [syncedMsg, setSyncedMsg] = useState<string | null>(null);
   const [pdfBusy, setPdfBusy] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importedMsg, setImportedMsg] = useState<string | null>(null);
 
   const pendingCount = doramas.filter((d) => d.wikidataId == null).length;
 
@@ -53,6 +57,49 @@ export function DoramasScreen() {
     }
   };
 
+  const handleExportJson = () => {
+    if (doramas.length === 0) return;
+    const doc = serializeCatalog(doramas);
+    const blob = new Blob([JSON.stringify(doc, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = BACKUP_FILENAME;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportClick = () => fileInputRef.current?.click();
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite reimportar o mesmo arquivo
+    if (!file) return;
+    setImportError(null);
+    setImportedMsg(null);
+    try {
+      const text = await file.text();
+      const records = parseBackup(text);
+      if (records.length === 0) {
+        setImportError("O backup não contém doramas.");
+        return;
+      }
+      const ok = importDoramas(records);
+      if (!ok) {
+        setImportError("Falha ao salvar o backup (armazenamento cheio?).");
+        return;
+      }
+      setImportedMsg(
+        `${records.length} ${records.length === 1 ? "dorama importado" : "doramas importados"} com sucesso.`,
+      );
+      setTimeout(() => setImportedMsg(null), 6000);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Falha ao ler o arquivo.");
+    }
+  };
+
   if (doramas.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center px-6 text-center">
@@ -63,6 +110,20 @@ export function DoramasScreen() {
         <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-gray-600">
           Busque um dorama pelo título ou IMDb ID na barra superior para começar.
         </p>
+        <button
+          onClick={handleImportClick}
+          className="mt-6 flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-gray-400 transition-all duration-200 hover:border-amber-500/30 hover:bg-amber-950/20 hover:text-amber-400"
+        >
+          <Upload className="h-4 w-4" />
+          Importar JSON
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={handleFile}
+        />
       </div>
     );
   }
@@ -89,6 +150,28 @@ export function DoramasScreen() {
             )}
             {pdfBusy ? "Preparando PDF…" : "Exportar PDF"}
           </button>
+          <button
+            onClick={handleExportJson}
+            disabled={doramas.length === 0}
+            className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-gray-400 transition-all duration-200 hover:border-amber-500/30 hover:bg-amber-950/20 hover:text-amber-400 disabled:opacity-30"
+          >
+            <FileJson className="h-4 w-4" />
+            Exportar JSON
+          </button>
+          <button
+            onClick={handleImportClick}
+            className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-gray-400 transition-all duration-200 hover:border-amber-500/30 hover:bg-amber-950/20 hover:text-amber-400"
+          >
+            <Upload className="h-4 w-4" />
+            Importar JSON
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={handleFile}
+          />
           <button
             onClick={handleSync}
             disabled={syncing || pendingCount === 0}
@@ -135,6 +218,22 @@ export function DoramasScreen() {
           className="mb-4 text-xs text-red-400"
         >
           {syncError}
+        </p>
+      )}
+      {importedMsg && (
+        <p
+          style={{ animation: "fadeIn 0.2s ease-out" }}
+          className="mb-4 text-xs text-emerald-400"
+        >
+          {importedMsg}
+        </p>
+      )}
+      {importError && (
+        <p
+          style={{ animation: "fadeIn 0.2s ease-out" }}
+          className="mb-4 text-xs text-red-400"
+        >
+          {importError}
         </p>
       )}
 

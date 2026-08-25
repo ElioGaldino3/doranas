@@ -247,3 +247,46 @@ listava 1 dorama).
 - ✅ `npm test` (82), ✅ `npm run lint`, ✅ `npm run build`, ✅ `npx tsc -b`.
 
 ---
+
+## ✅ Concluída: Fase 6 — Backup/Restore JSON
+
+**Concluída em**: 2026-08-25 | **Commit**: _(commit da Fase 6, abaixo)_
+
+### Problema
+Os dados viviam só no `localStorage` (chave `dorama_graph_data`): sem
+portabilidade nem cópia de segurança. Perder o storage (limpeza de
+navegador, troca de máquina) era perda total do catálogo.
+
+### Entregue (export/import do catálogo como `.json`, não-destrutivo)
+- `src/utils/backup.ts` (puro, testável):
+  - `serializeCatalog(doramas)` → `DoramaDocument` v2 (mesma forma
+    persistida) com `updatedAt`.
+  - `parseBackup(raw)` → aceita **doc v2 completo OU array cru** de doramas;
+    lança em JSON inválido / schema incompatível / entrada sem `id`+`title`.
+  - `mergeDoramas(existing, imported)` → mescla por TMDB id **sem mutar
+    inputs**; em colisão o **importado prevalece**; preserva existentes
+    ausentes no arquivo (operação não-destrutiva).
+  - `BACKUP_FILENAME = "dorama-actors-backup.json"`.
+- `src/hooks/useCatalogActions.ts`: +`importDoramas(records)` (mescla no
+  store + persiste via `writeV2Doc`; retorna `false` em falha de quota).
+- `src/components/catalog/DoramasScreen.tsx`: botões **Exportar JSON**
+  (Blob + download) e **Importar JSON** (input file oculto → `FileReader` →
+  `parseBackup` → `importDoramas`) com banners de sucesso/erro. Import
+  também acessível no estado vazio (restaurar catálogo zerado).
+- **Testes**: +11 em `tests/backup.test.ts` (serialize, parse v2/array,
+  rejeição de inválidos, merge não-destrutivo + prevalência, bridge
+  `importDoramas` no store+localStorage). Total: **93**.
+
+### Decisões relevantes
+- **Merge, não replace**: escolha alinhada à postura não-destrutiva do
+  projeto (Fase 5) — nunca apaga doramas existentes; importado vence só em
+  id igual.
+- **Download/Blob no componente** (não no util): segue o padrão do
+  `buildDoramaPdf` (lógica pura testada no util; disparo de download fica
+  no chamador). `parseBackup` recebe string, então o `FileReader` fica na UI.
+- Export desabilitado quando o catálogo está vazio (nada a exportar).
+
+### Verificação (verde)
+- ✅ `npm test` (93), ✅ `npm run lint`, ✅ `npm run build`, ✅ `npx tsc -b`.
+
+---

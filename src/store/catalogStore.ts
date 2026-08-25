@@ -12,12 +12,17 @@ import type { DoramaRecord, Screen } from "../types/models";
 interface CatalogState {
   doramas: DoramaRecord[];
   screen: Screen;
+  /** Merge manual de atores (não-destrutivo): idDuplicado → idCanonico. */
+  actorAliases: Record<string, string>;
 
   setDoramas: (doramas: DoramaRecord[]) => void;
   addDorama: (dorama: DoramaRecord) => void;
   updateDorama: (dorama: DoramaRecord) => void;
   removeDorama: (doramaId: string) => void;
   clearAll: () => void;
+  setActorAliases: (aliases: Record<string, string>) => void;
+  /** Adiciona/atualiza um alias manual de merge de ator (não muta entradas). */
+  addActorAlias: (sourceId: string, targetId: string) => void;
   /** Troca a tela ativa; se não informada, mantém (uso interno de navegação). */
   navigate: (screen: Screen) => void;
 }
@@ -25,6 +30,7 @@ interface CatalogState {
 export const useCatalogStore = create<CatalogState>((set) => ({
   doramas: [],
   screen: { name: "doramas" },
+  actorAliases: {},
 
   setDoramas: (doramas) => set({ doramas }),
   addDorama: (dorama) =>
@@ -40,7 +46,17 @@ export const useCatalogStore = create<CatalogState>((set) => ({
     set((state) => ({
       doramas: state.doramas.filter((d) => d.id !== doramaId),
     })),
-  clearAll: () => set({ doramas: [] }),
+  clearAll: () => set({ doramas: [], actorAliases: {} }),
+  setActorAliases: (aliases) => set({ actorAliases: aliases }),
+  addActorAlias: (sourceId, targetId) =>
+    set((state) => {
+      if (sourceId === targetId) return state;
+      // Remove alias prévio do source (se houver) e aplica o novo.
+      const next = { ...state.actorAliases };
+      delete next[sourceId];
+      next[sourceId] = targetId;
+      return { actorAliases: next };
+    }),
 
   navigate: (screen) => set({ screen }),
 }));

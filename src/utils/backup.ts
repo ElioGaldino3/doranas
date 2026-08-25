@@ -7,14 +7,27 @@ export const BACKUP_FILENAME = "dorama-actors-backup.json";
 
 const INVALID_BACKUP = "Arquivo de backup inválido ou incompatível.";
 
+/** Resultado do parse de um backup (catálogo + aliases de merge manual). */
+export interface ParsedBackup {
+  doramas: DoramaRecord[];
+  actorAliases?: Record<string, string>;
+}
+
 /**
  * Serializa o catálogo num DoramaDocument v2 — a mesma forma persistida na
  * chave `dorama_graph_data`, para que o backup seja re-importável e portável.
+ * Inclui os `actorAliases` (merge manual de atores) quando houver.
  */
-export function serializeCatalog(doramas: DoramaRecord[]): DoramaDocument {
+export function serializeCatalog(
+  doramas: DoramaRecord[],
+  actorAliases?: Record<string, string>,
+): DoramaDocument {
   return {
     schemaVersion: SCHEMA_VERSION,
     doramas,
+    ...(actorAliases && Object.keys(actorAliases).length > 0
+      ? { actorAliases }
+      : {}),
     updatedAt: Date.now(),
   };
 }
@@ -31,22 +44,30 @@ function isDoramaRecord(value: unknown): value is DoramaRecord {
 }
 
 /**
- * Faz o parse de um backup JSON (string) em uma lista de DoramaRecord.
+ * Faz o parse de um backup JSON (string) num `ParsedBackup`.
  *
  * Aceita tanto um DoramaDocument v2 completo quanto um array cru de doramas
  * (tolerância a formatos futuros), e lança `Error` se o conteúdo for
- * ilegível, com schema incompatível ou estrutura inesperada.
+ * ilegível, com schema incompatível ou estrutura inesperada. Os
+ * `actorAliases` do doc v2 são preservados (para reaplicar merges na
+ * importação).
  */
-export function parseBackup(raw: string): DoramaRecord[] {
+export function parseBackup(raw: string): ParsedBackup {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
     throw new Error(INVALID_BACKUP);
   }
-  if (isV2Doc(parsed)) return parsed.doramas;
+  if (isV2Doc(parsed)) {
+    const aliases =
+      parsed.actorAliases && typeof parsed.actorAliases === "object"
+        ? (parsed.actorAliases as Record<string, string>)
+        : undefined;
+    return { doramas: parsed.doramas, actorAliases: aliases };
+  }
   if (Array.isArray(parsed) && parsed.every(isDoramaRecord)) {
-    return parsed as DoramaRecord[];
+    return { doramas: parsed as DoramaRecord[] };
   }
   throw new Error(INVALID_BACKUP);
 }

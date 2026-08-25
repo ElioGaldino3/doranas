@@ -1,6 +1,6 @@
 import { useCatalogStore } from "../store/catalogStore";
 import { writeV2Doc } from "../services/persistence";
-import { mergeDoramas } from "../utils/backup";
+import { mergeDoramas, type ParsedBackup } from "../utils/backup";
 import type { DoramaRecord } from "../types/models";
 
 /**
@@ -8,10 +8,11 @@ import type { DoramaRecord } from "../types/models";
  *
  * O catalogStore continua puro (sem escrita em disco — decisão da Fase 2);
  * as ações de mutação abaixo atualizam o store E persistem o doc v2 na chave
- * `dorama_graph_data`.
+ * `dorama_graph_data` (incluindo os `actorAliases` de merge manual).
  */
 function persist(): void {
-  writeV2Doc(useCatalogStore.getState().doramas);
+  const { doramas, actorAliases } = useCatalogStore.getState();
+  writeV2Doc(doramas, { actorAliases });
 }
 
 export function useCatalogActions() {
@@ -36,16 +37,33 @@ export function useCatalogActions() {
   };
 
   /**
-   * Importa doramas de um backup (já validado/parseado) mesclando-os ao
-   * catálogo atual por TMDB id. Retorna false se a persistência falhar
-   * (ex.: quota do localStorage).
+   * Mescla um ator duplicado (`sourceId`) no ator canônico (`targetId`) via
+   * alias manual, não-destrutivo. Não altera os CastMember persistidos — só
+   * adiciona o alias consultado em tempo de leitura. Retorna false se a
+   * persistência falhar.
    */
-  const importDoramas = (records: DoramaRecord[]): boolean => {
-    const current = useCatalogStore.getState().doramas;
-    const merged = mergeDoramas(current, records);
-    useCatalogStore.getState().setDoramas(merged);
-    return writeV2Doc(merged);
+  const mergeActorAlias = (sourceId: string, targetId: string): boolean => {
+    if (sourceId === targetId) return true;
+    useCatalogStore.getState().addActorAlias(sourceId, targetId);
+    persist();
+    return true;
   };
 
-  return { addDorama, updateDorama, removeDorama, clearAll, importDoramas };
+  /**
+   * Importa doramas de um backup (já validado/parseado) mesclando-os ao
+   * catálogo atual por TMDB id, e funde os `actorAliases` do backup com os
+   * existentes (importado prevalece). Retorna false se a persistência falhar
+   * (ex.: quota do localStorage).
+   */
+  const importDoramas = (parsed: ParsedBackup): boolean => {
+    const { doramas: current, actorAliases: currentAliases } =
+      useCatalogStore.getState();
+    const merged = mergeDoramas(current, parsed.doramas);
+    const aliases = { ...currentAliases, ...(parsed.actorAliases ?? {}) };
+    useCatalogStore.getState().setDoramas(merged);
+    useCatalogStore.getState().setActorAliases(aliases);
+    return writeV2Doc(merged, { actorAliases: aliases });
+  };
+
+  return { addDorama, updateDorama, removeDorama, clearAll, mergeActorAlias, importDoramas };
 }

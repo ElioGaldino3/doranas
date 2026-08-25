@@ -32,18 +32,39 @@ describe("serializeCatalog", () => {
     expect(doc.doramas).toEqual(list);
     expect(typeof doc.updatedAt).toBe("number");
   });
+
+  it("inclui actorAliases quando houver", () => {
+    const doc = serializeCatalog([dorama("1", "A")], { "123": "456" });
+    expect(doc.actorAliases).toEqual({ "123": "456" });
+  });
+
+  it("omite actorAliases vazio", () => {
+    const doc = serializeCatalog([dorama("1", "A")], {});
+    expect(doc.actorAliases).toBeUndefined();
+  });
 });
 
 describe("parseBackup", () => {
-  it("aceita um DoramaDocument v2 serializado", () => {
+  it("aceita um DoramaDocument v2 serializado (retorna ParsedBackup)", () => {
     const list = [dorama("1", "A")];
     const raw = JSON.stringify({ schemaVersion: SCHEMA_VERSION, doramas: list, updatedAt: 123 });
-    expect(parseBackup(raw)).toEqual(list);
+    expect(parseBackup(raw)).toEqual({ doramas: list });
   });
 
-  it("aceita um array cru de doramas", () => {
+  it("preserva actorAliases do doc v2", () => {
     const list = [dorama("1", "A")];
-    expect(parseBackup(JSON.stringify(list))).toEqual(list);
+    const raw = JSON.stringify({
+      schemaVersion: SCHEMA_VERSION,
+      doramas: list,
+      actorAliases: { "123": "456" },
+      updatedAt: 123,
+    });
+    expect(parseBackup(raw)).toEqual({ doramas: list, actorAliases: { "123": "456" } });
+  });
+
+  it("aceita um array cru de doramas (sem aliases)", () => {
+    const list = [dorama("1", "A")];
+    expect(parseBackup(JSON.stringify(list))).toEqual({ doramas: list });
   });
 
   it("lança em JSON inválido", () => {
@@ -97,7 +118,7 @@ describe("useCatalogActions.importDoramas", () => {
     const before = useCatalogStore.getState().doramas;
     expect(before).toHaveLength(1);
 
-    const ok = useCatalogActions().importDoramas([dorama("2", "B")]);
+    const ok = useCatalogActions().importDoramas({ doramas: [dorama("2", "B")] });
     expect(ok).toBe(true);
 
     const after = useCatalogStore.getState().doramas;
@@ -105,6 +126,27 @@ describe("useCatalogActions.importDoramas", () => {
 
     const persisted = JSON.parse(localStorage.getItem("dorama_graph_data")!);
     expect(persisted.doramas.map((d: DoramaRecord) => d.id)).toEqual(["1", "2"]);
+  });
+
+  it("funde os actorAliases do backup com os existentes", () => {
+    useCatalogStore.getState().setActorAliases({ "1": "a" });
+    useCatalogActions().importDoramas({ doramas: [dorama("2", "B")], actorAliases: { "3": "c" } });
+    const persisted = JSON.parse(localStorage.getItem("dorama_graph_data")!);
+    expect(persisted.actorAliases).toEqual({ "1": "a", "3": "c" });
+  });
+
+  it("mergeActorAlias persiste o alias no doc v2", () => {
+    const ok = useCatalogActions().mergeActorAlias("123", "Q678");
+    expect(ok).toBe(true);
+    expect(useCatalogStore.getState().actorAliases).toEqual({ "123": "Q678" });
+    const persisted = JSON.parse(localStorage.getItem("dorama_graph_data")!);
+    expect(persisted.actorAliases).toEqual({ "123": "Q678" });
+  });
+
+  it("mergeActorAlias ignora source === target", () => {
+    const before = useCatalogStore.getState().actorAliases;
+    useCatalogActions().mergeActorAlias("x", "x");
+    expect(useCatalogStore.getState().actorAliases).toBe(before);
   });
 });
 

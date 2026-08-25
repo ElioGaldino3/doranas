@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useCatalogStore } from "../store/catalogStore";
 import { migrateIfNeeded } from "../services/migration";
+import { readV2Doc } from "../services/persistence";
 import { imageUrl, getSeriesDetails, getSeriesCast } from "../services/tmdb";
 import { resolveSeriesQidsByTmdbIds, fetchCastForQids } from "../services/wikidata";
 import type { CastResult } from "../types/tmdb";
@@ -23,6 +24,7 @@ export interface AppInitState {
  */
 export function useAppInit(): AppInitState {
   const setDoramas = useCatalogStore((s) => s.setDoramas);
+  const setActorAliases = useCatalogStore((s) => s.setActorAliases);
   const [state, setState] = useState<AppInitState>({
     loading: true,
     progress: null,
@@ -51,6 +53,11 @@ export function useAppInit(): AppInitState {
 
         if (!cancelled) {
           setDoramas(result.doramas);
+          // Carrega os aliases de merge manual persistidos (se houver) no doc v2.
+          const stored = readV2Doc(localStorage);
+          setActorAliases((stored?.actorAliases && typeof stored.actorAliases === "object"
+            ? stored.actorAliases
+            : {}) as Record<string, string>);
           setState({
             loading: false,
             progress: null,
@@ -75,7 +82,7 @@ export function useAppInit(): AppInitState {
     return () => {
       cancelled = true;
     };
-  }, [setDoramas]);
+  }, [setDoramas, setActorAliases]);
 
   return state;
 }

@@ -11,6 +11,7 @@ import type { DoramaRecord } from "../../types/models";
 /** Tela "Doramas": grade de cards do catálogo + ações de exportar PDF e limpar. */
 export function DoramasScreen() {
   const doramas = useCatalogStore((s) => s.doramas);
+  const actorAliases = useCatalogStore((s) => s.actorAliases);
   const navigate = useCatalogStore((s) => s.navigate);
   const { clearAll, importDoramas } = useCatalogActions();
   const { rehydrateAll, busy: syncing, progress: syncProgress, error: syncError } = useRehydrate();
@@ -68,7 +69,7 @@ export function DoramasScreen() {
 
   const handleExportJson = () => {
     if (doramas.length === 0) return;
-    const doc = serializeCatalog(doramas);
+    const doc = serializeCatalog(doramas, actorAliases);
     const blob = new Blob([JSON.stringify(doc, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -90,18 +91,18 @@ export function DoramasScreen() {
     setImportedMsg(null);
     try {
       const text = await file.text();
-      const records = parseBackup(text);
-      if (records.length === 0) {
+      const parsed = parseBackup(text);
+      if (parsed.doramas.length === 0) {
         setImportError("O backup não contém doramas.");
         return;
       }
-      const ok = importDoramas(records);
+      const ok = importDoramas(parsed);
       if (!ok) {
         setImportError("Falha ao salvar o backup (armazenamento cheio?).");
         return;
       }
       setImportedMsg(
-        `${records.length} ${records.length === 1 ? "dorama importado" : "doramas importados"} com sucesso.`,
+        `${parsed.doramas.length} ${parsed.doramas.length === 1 ? "dorama importado" : "doramas importados"} com sucesso.`,
       );
       setTimeout(() => setImportedMsg(null), 6000);
     } catch (err) {

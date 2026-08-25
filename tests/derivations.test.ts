@@ -11,6 +11,7 @@ import {
   actorIds,
   buildCanonicalIdMap,
   canonicalId,
+  resolveAlias,
 } from "../src/utils/derivations";
 import type { CastMember, DoramaRecord } from "../src/types/models";
 import type { CastResult, SeriesDetails } from "../src/types/tmdb";
@@ -248,5 +249,69 @@ describe("deduplicação de atores (id canônico)", () => {
   it("não funde atores de verdade distintos", () => {
     const map = buildCanonicalIdMap(doramas);
     expect(canonicalId(member("Q999", 0), map)).toBe("Q999");
+  });
+});
+
+describe("resolveAlias", () => {
+  it("retorna o próprio id quando não há alias", () => {
+    expect(resolveAlias("123", {})).toBe("123");
+  });
+
+  it("segue a cadeia source → target até o terminal", () => {
+    expect(resolveAlias("123", { "123": "456", "456": "Q9" })).toBe("Q9");
+  });
+
+  it("interrompe ciclos sem travar", () => {
+    expect(resolveAlias("a", { a: "b", b: "a" })).toBe("a");
+  });
+});
+
+describe("merge manual de atores via actorAliases", () => {
+  // Limitação da Fase 5: o mesmo ator físico aparece em doramas diferentes
+  // SEM nenhum id compartilhado — TMDB-only ("123") num e só-Wikidata ("Q678")
+  // noutro. O dedup automático não os une; o merge manual (alias) resolve.
+  const tmdbOnly = (): CastMember => ({
+    personId: "123",
+    name: "Ator X",
+    order: 0,
+    protagonist: false,
+  });
+  const wikiOnly = (): CastMember => ({
+    personId: "Q678",
+    name: "Ator X",
+    order: null,
+    protagonist: false,
+    wikidataId: "Q678",
+  });
+
+  const doramas: DoramaRecord[] = [
+    { id: "d1", title: "D1", addedAt: 1, cast: [tmdbOnly(), member("other", 1)] },
+    { id: "d2", title: "D2", addedAt: 2, cast: [wikiOnly()] },
+  ];
+
+  it("sem alias, ator TMDB-only e só-Wikidata permanecem separados", () => {
+    const actors = actorsByAppearance(doramas, {});
+    expect(actors).toHaveLength(3); // 123, Q678, other
+  });
+
+  it("com alias 123→Q678, unifica em 1 entrada (2 aparições)", () => {
+    const aliases = { "123": "Q678" };
+    const actors = actorsByAppearance(doramas, aliases);
+    const merged = actors.find((a) => a.personId === "Q678");
+    expect(merged).toBeDefined();
+    expect(merged!.appearances).toBe(2);
+    expect(merged!.doramaIds.sort()).toEqual(["d1", "d2"]);
+  });
+
+  it("doramasOfPerson cruza o merge manual entre doramas", () => {
+    const all = doramasOfPerson(doramas, "Q678", { "123": "Q678" }).sort((a, b) =>
+      a.id.localeCompare(b.id),
+    );
+    expect(all.map((d) => d.id)).toEqual(["d1", "d2"]);
+  });
+
+  it("otherDoramasOf cruza o merge manual via id canônico", () => {
+    const others = otherDoramasOf(doramas, "Q678", "d1", { "123": "Q678" });
+    expect(others).toEqual([{ id: "d2", title: "D2", protagonist: false }]);
   });
 });

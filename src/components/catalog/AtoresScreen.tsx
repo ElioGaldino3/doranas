@@ -8,8 +8,9 @@ import type { ActorAppearance } from "../../utils/derivations";
 /** Tela "Atores": agregado de elenco por nº de aparições. */
 export function AtoresScreen() {
   const doramas = useCatalogStore((s) => s.doramas);
+  const aliases = useCatalogStore((s) => s.actorAliases);
   const navigate = useCatalogStore((s) => s.navigate);
-  const actors = useMemo(() => actorsByAppearance(doramas), [doramas]);
+  const actors = useMemo(() => actorsByAppearance(doramas, aliases), [doramas, aliases]);
 
   if (actors.length === 0) {
     return (

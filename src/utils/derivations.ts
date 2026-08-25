@@ -92,38 +92,72 @@ export function actorIds(member: CastMember): string[] {
 }
 
 /**
+ * Resolve um id através da cadeia de aliases manuais (`source → target`),
+ * seguindo o encadeamento até o id canônico terminal. Protege contra ciclos
+ * via conjunto de visitados. Ids sem alias retornam a si mesmos.
+ */
+export function resolveAlias(
+  id: string,
+  aliases: Record<string, string> = {},
+): string {
+  const seen = new Set<string>();
+  let cur = id;
+  while (aliases[cur] && !seen.has(cur)) {
+    seen.add(cur);
+    cur = aliases[cur];
+  }
+  return cur;
+}
+
+/**
  * Mapa de qualquer id conhecido (TMDB id ou Wikidata QID) → id canônico do
  * ator, unificando entradas que compartilham um mesmo id (union-find sobre o
  * catálogo). Resolve o caso em que o mesmo ator aparece com `personId`
  * divergente entre doramas (ex.: TMDB id num dorama migrado e QID noutro
  * vindo só do Wikidata). O id canônico prefere o `wikidataId` quando este
  * participa da classe de equivalência.
+ *
+ * `aliases` (merge manual de atores) é consultado em tempo de leitura: ids
+ * aliasados são resolvidos para o id canônico alvo antes do union-find, de
+ * modo que o mesmo indivíduo (ex.: ator só-TMDB vs ator só-Wikidata) passa a
+ * ser tratado como uma entrada única.
  */
-export function buildCanonicalIdMap(doramas: DoramaRecord[]): Map<string, string> {
+export function buildCanonicalIdMap(
+  doramas: DoramaRecord[],
+  aliases: Record<string, string> = {},
+): Map<string, string> {
   const map = new Map<string, string>();
   for (const dorama of doramas) {
     for (const member of dorama.cast) {
       const ids = actorIds(member);
+      const resolved = ids.map((i) => resolveAlias(i, aliases));
+      const allIds = [...ids, ...resolved];
       let canon: string | undefined;
-      for (const id of ids) {
+      for (const id of allIds) {
         const existing = map.get(id);
         if (existing) {
           canon = existing;
           break;
         }
       }
-      if (!canon) canon = ids[0];
-      for (const id of ids) map.set(id, canon);
+      if (!canon) canon = resolved[0];
+      for (const id of allIds) map.set(id, canon);
     }
   }
   return map;
 }
 
-/** Id canônico de um membro de elenco (usado para agrupar/dedup). */
-export function canonicalId(member: CastMember, map: Map<string, string>): string {
+/** Id canônico de um membro de elenco (usado para agrupar/dedup).
+ * `aliases` é repassado a `buildCanonicalIdMap` para resolver merges manuais. */
+export function canonicalId(
+  member: CastMember,
+  map: Map<string, string>,
+  aliases: Record<string, string> = {},
+): string {
   const ids = actorIds(member);
   for (const id of ids) {
-    const canon = map.get(id);
+    const resolved = resolveAlias(id, aliases);
+    const canon = map.get(resolved) ?? map.get(id);
     if (canon) return canon;
   }
   return ids[0];
@@ -142,14 +176,18 @@ export interface ActorAppearance {
 
 /** Atores agregados por nº de aparições (desc), desempate por nome (asc).
  * Agrupa pelo id canônico do ator, unificando o mesmo ator físico quando ele
- * aparece com `personId` divergente (TMDB id vs Wikidata QID) entre doramas. */
-export function actorsByAppearance(doramas: DoramaRecord[]): ActorAppearance[] {
-  const map = buildCanonicalIdMap(doramas);
+ * aparece com `personId` divergente (TMDB id vs Wikidata QID) entre doramas.
+ * `aliases` aplica merges manuais de atores. */
+export function actorsByAppearance(
+  doramas: DoramaRecord[],
+  aliases: Record<string, string> = {},
+): ActorAppearance[] {
+  const map = buildCanonicalIdMap(doramas, aliases);
   const agg = new Map<string, ActorAppearance>();
 
   for (const dorama of doramas) {
     for (const member of dorama.cast) {
-      const key = canonicalId(member, map);
+      const key = canonicalId(member, map, aliases);
       const existing = agg.get(key);
       if (existing) {
         existing.appearances += 1;
@@ -181,12 +219,13 @@ export function otherDoramasOf(
   doramas: DoramaRecord[],
   personId: string,
   currentDoramaId: string,
+  aliases: Record<string, string> = {},
 ): { id: string; title: string; protagonist: boolean }[] {
-  const map = buildCanonicalIdMap(doramas);
+  const map = buildCanonicalIdMap(doramas, aliases);
   const result: { id: string; title: string; protagonist: boolean }[] = [];
   for (const dorama of doramas) {
     if (dorama.id === currentDoramaId) continue;
-    const member = dorama.cast.find((m) => canonicalId(m, map) === personId);
+    const member = dorama.cast.find((m) => canonicalId(m, map, aliases) === personId);
     if (member) result.push({ id: dorama.id, title: dorama.title, protagonist: member.protagonist });
   }
   return result;
@@ -197,11 +236,12 @@ export function otherDoramasOf(
 export function doramasOfPerson(
   doramas: DoramaRecord[],
   personId: string,
+  aliases: Record<string, string> = {},
 ): { id: string; title: string; year?: number | null; protagonist: boolean }[] {
-  const map = buildCanonicalIdMap(doramas);
+  const map = buildCanonicalIdMap(doramas, aliases);
   const result: { id: string; title: string; year?: number | null; protagonist: boolean }[] = [];
   for (const dorama of doramas) {
-    const member = dorama.cast.find((m) => canonicalId(m, map) === personId);
+    const member = dorama.cast.find((m) => canonicalId(m, map, aliases) === personId);
     if (member) {
       result.push({
         id: dorama.id,

@@ -10,11 +10,15 @@ import type { CastMember, DoramaRecord } from "../../types/models";
 /** Tela de detalhe de um dorama: sinopse + elenco com cross-refs de atores. */
 export function DoramaDetailScreen({ doramaId }: { doramaId: string }) {
   const doramas = useCatalogStore((s) => s.doramas);
+  const aliases = useCatalogStore((s) => s.actorAliases);
   const navigate = useCatalogStore((s) => s.navigate);
   const { removeDorama } = useCatalogActions();
   const { rehydrateOne, busy: rehydrating, error: rehydrateError } = useRehydrate();
   const [enrichedMsg, setEnrichedMsg] = useState<string | null>(null);
-  const canonicalMap = useMemo(() => buildCanonicalIdMap(doramas), [doramas]);
+  const canonicalMap = useMemo(
+    () => buildCanonicalIdMap(doramas, aliases),
+    [doramas, aliases],
+  );
   const dorama = doramas.find((d) => d.id === doramaId);
 
   if (!dorama) {
@@ -132,7 +136,7 @@ export function DoramaDetailScreen({ doramaId }: { doramaId: string }) {
               key={member.personId}
               dorama={dorama}
               member={member}
-              canonicalPersonId={canonicalId(member, canonicalMap)}
+              canonicalPersonId={canonicalId(member, canonicalMap, aliases)}
             />
           ))}
         </div>
@@ -151,8 +155,9 @@ function CastRow({
   canonicalPersonId: string;
 }) {
   const doramas = useCatalogStore((s) => s.doramas);
+  const aliases = useCatalogStore((s) => s.actorAliases);
   const navigate = useCatalogStore((s) => s.navigate);
-  const others = otherDoramasOf(doramas, canonicalPersonId, dorama.id);
+  const others = otherDoramasOf(doramas, canonicalPersonId, dorama.id, aliases);
   const imgSrc = thumbUrl(member.profileImgUrl);
 
   return (

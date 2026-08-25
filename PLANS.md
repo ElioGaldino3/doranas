@@ -333,3 +333,60 @@ não filtra o que já está no catálogo.
 - ✅ `npm test` (101), ✅ `npm run lint`, ✅ `npm run build`, ✅ `npx tsc -b`.
 
 ---
+
+## ✅ Concluída: Fase 8 — Merge manual de atores
+
+**Concluída em**: 2026-08-25 | **Commit**: _(commit da Fase 8, abaixo)_
+
+### Problema (limitação conhecida da Fase 5)
+O dedup automático (id canônico) só unifica quando há um **id compartilhado**
+(TMDB id ↔ Wikidata QID). Quando o mesmo ator físico aparece em doramas
+diferentes **sem** nenhum id em comum — ator só-TMDB (`"123"`) num e ator
+só-Wikidata (`"Q678"`) noutro — ele continua separado em "2 atores".
+
+### Entregue (merge manual não-destrutivo via aliases)
+- `src/types/models.ts`: `DoramaDocument.actorAliases?: Record<string,string>`
+  (`sourceId → targetCanonicalId`); campo opcional (backward compatible, não
+  exige bump de `SCHEMA_VERSION`).
+- `src/utils/derivations.ts`:
+  - `resolveAlias(id, aliases)` — segue a cadeia `source→target` até o
+    terminal; protegido contra ciclos (conjunto de visitados).
+  - `buildCanonicalIdMap(doramas, aliases?)` resolve cada id pelo alias antes
+    do union-find e "assenta" (bake) o alias no mapa — unifica o ator splitado
+    sem tocar nos `CastMember` persistidos.
+  - `canonicalId`, `actorsByAppearance`, `otherDoramasOf`, `doramasOfPerson`
+    ganham `aliases?` (default `{}`).
+- `src/services/persistence.ts`: `writeV2Doc` aceita `actorAliases` no `extra`.
+- `src/utils/backup.ts`: `serializeCatalog(doramas, aliases?)` inclui os
+  aliases no export; `parseBackup` vira `ParsedBackup { doramas, actorAliases? }`
+  (preserva merges na importação).
+- `src/store/catalogStore.ts`: +`actorAliases`, `setActorAliases`,
+  `addActorAlias(source, target)` (no-op se `source===target`); `clearAll`
+  zera aliases.
+- `src/hooks/useCatalogActions.ts`: `persist()` grava `actorAliases`;
+  +`mergeActorAlias(source, target)` (store + persist) e `importDoramas`
+  agora recebe `ParsedBackup` e funde aliases (importado prevalece).
+- `src/hooks/useAppInit.ts`: após migração, lê `actorAliases` do doc v2 e
+  povoa o store.
+- UI: `AtorDetailScreen` ganha "Mesclar com…" (`select` de outros atores →
+  `mergeActorAlias(target, thisCanonical)`); `AtoresScreen`/`DoramaDetailScreen`/
+  `AtorDetailScreen` repassam `actorAliases` às derivações. `DoramasScreen`
+  exporta/importa aliases.
+- **Testes**: +21 (resolveAlias + cadeia/ciclo; unify TMDB-only⊕Wikidata-only
+  via alias em `actorsByAppearance`/`doramasOfPerson`/`otherDoramasOf`;
+  `serializeCatalog`/`parseBackup` com aliases; bridge `mergeActorAlias` +
+  `importDoramas` fundindo aliases; `parseBackup` retornando `ParsedBackup`).
+  Total: **114**.
+
+### Decisões relevantes
+- **Não-destrutivo**: o merge é um alias em tempo de leitura (mesma postura
+  das Fases 5/7). Reverte-se removendo o alias; não reescreve `CastMember`.
+- **Alias no doc v2** (não chave separada): mantém 1 fonte de verdade
+  (`dorama_graph_data`); campo opcional evita bump de schema.
+- **Ciclo**: `resolveAlias` termina no ponto de entrada do ciclo; UI proíbe
+  `source===target`, logo ciclos reais não ocorrem.
+
+### Verificação (verde)
+- ✅ `npm test` (114), ✅ `npm run lint`, ✅ `npm run build`, ✅ `npx tsc -b`.
+
+---

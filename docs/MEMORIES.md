@@ -94,6 +94,25 @@ Registre aqui toda informação nova e durável em vez de repetir no
 - **Decisão**: não reescrever `CastMember.personId` persistido — mantém dados
   originais e é reversível.
 
+### Merge manual de atores (Fase 8) — 2026-08-25
+- **Resolve a limitação da Fase 5**: ator só-TMDB (`"123"`) vs ator só-Wikidata
+  (`"Q678"`) sem id comum ficavam separados. Agora um alias manual
+  `sourceId→targetCanonicalId` unifica em tempo de leitura.
+- `DoramaDocument.actorAliases?: Record<string,string>` (opcional, sem bump de
+  schema). `derivations.ts` ganhou `resolveAlias` (cadeia + anti-ciclo) e
+  `buildCanonicalIdMap(doramas, aliases?)` "assenta" o alias (bake) no mapa
+  canônico; `canonicalId`/`actorsByAppearance`/`otherDoramasOf`/`doramasOfPerson`
+  aceitam `aliases?`.
+- `catalogStore`: +`actorAliases`, `setActorAliases`, `addActorAlias`
+  (no-op se source===target). `useCatalogActions.mergeActorAlias` (store+persist);
+  `persist()` grava aliases; `importDoramas` recebe `ParsedBackup` e funde aliases.
+- `backup.ts`: `serializeCatalog(doramas, aliases?)`; `parseBackup` →
+  `ParsedBackup { doramas, actorAliases? }`. `useAppInit` carrega aliases do doc v2.
+- UI: `AtorDetailScreen` "Mesclar com…" (`select` de outros atores).
+- **Decisão**: não-destrutivo (alias em leitura, igual Fases 5/7); ciclos
+  impossíveis na prática (UI proíbe source===target), `resolveAlias` termina
+  no início do ciclo por segurança.
+
 ### Filtros e ordenação do catálogo (Fase 7) — 2026-08-25
 - `src/utils/catalogView.ts` (puro): `DoramaSort`, `sortDoramas` (recente/
   título/ano; colação `Intl.Collator("pt-BR",{numeric:true})` — acentos e

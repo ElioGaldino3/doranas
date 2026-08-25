@@ -93,7 +93,9 @@ export function readV2Doc(storage: StorageLike = defaultStorage()): DoramaDocume
 /** Persiste o doc v2. Retorna false em falha de storage (ex.: quota). */
 export function writeV2Doc(
   doramas: DoramaRecord[],
-  extra: Partial<Pick<DoramaDocument, "migrationPending" | "lastError">> = {},
+  extra: Partial<
+    Pick<DoramaDocument, "migrationPending" | "lastError" | "actorAliases">
+  > = {},
   storage: StorageLike = defaultStorage(),
 ): boolean {
   try {

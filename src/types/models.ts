@@ -39,6 +39,13 @@ export interface DoramaRecord {
 export interface DoramaDocument {
   schemaVersion: number;
   doramas: DoramaRecord[];
+  /**
+   * Merge manual de atores (não-destrutivo): mapa `idDuplicado → idCanonico`.
+   * Resolve a limitação do dedup automático (Fase 5), quando um ator só-TMDB
+   * e um ator só-Wikidata do mesmo indivíduo ficam separados. Consultado em
+   * tempo de leitura por `buildCanonicalIdMap`. Opcional (ausente = sem merge).
+   */
+  actorAliases?: Record<string, string>;
   /** Marca migração incompleta (ex.: rede caiu) p/ permitir retomar. */
   migrationPending?: boolean;
   lastError?: string;

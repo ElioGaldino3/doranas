@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, Film, GitMerge, Star, Users } from "lucide-react";
+import { ArrowLeft, Film, GitMerge, Star, Trash2, Users } from "lucide-react";
 import { useCatalogStore } from "../../store/catalogStore";
 import { useCatalogActions } from "../../hooks/useCatalogActions";
 import {
@@ -16,7 +16,7 @@ export function AtorDetailScreen({ personId }: { personId: string }) {
   const doramas = useCatalogStore((s) => s.doramas);
   const aliases = useCatalogStore((s) => s.actorAliases);
   const navigate = useCatalogStore((s) => s.navigate);
-  const { mergeActorAlias } = useCatalogActions();
+  const { mergeActorAlias, removeActorFromCatalog } = useCatalogActions();
   const [mergeTarget, setMergeTarget] = useState("");
   const [mergeMsg, setMergeMsg] = useState<string | null>(null);
 
@@ -52,6 +52,13 @@ export function AtorDetailScreen({ personId }: { personId: string }) {
     setMergeTarget("");
     setMergeMsg("Atores mesclados com sucesso.");
     setTimeout(() => setMergeMsg(null), 6000);
+  };
+
+  const handleRemove = () => {
+    if (window.confirm(`Remover "${actor?.name ?? "este ator"}" de todos os doramas do catálogo?`)) {
+      removeActorFromCatalog(personId);
+      navigate({ name: "atores" });
+    }
   };
 
   if (!actor) {
@@ -122,6 +129,13 @@ export function AtorDetailScreen({ personId }: { personId: string }) {
               </div>
             </div>
           )}
+          <button
+            onClick={handleRemove}
+            aria-label="Remover ator do catálogo"
+            className="flex items-center gap-2 rounded-xl border border-red-500/15 bg-red-950/20 px-3 py-2 text-sm font-medium text-red-400/80 transition-all duration-200 hover:border-red-500/30 hover:bg-red-950/40 hover:text-red-400"
+          >
+            <Trash2 className="h-4 w-4" /> Remover
+          </button>
         </div>
       </div>
 

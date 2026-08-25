@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, Film, Loader2, Sparkles, Star, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, Film, Loader2, Pencil, Sparkles, Star, Trash2, X } from "lucide-react";
 import { useCatalogStore } from "../../store/catalogStore";
 import { useCatalogActions } from "../../hooks/useCatalogActions";
 import { useRehydrate } from "../../hooks/useRehydrate";
@@ -12,9 +12,12 @@ export function DoramaDetailScreen({ doramaId }: { doramaId: string }) {
   const doramas = useCatalogStore((s) => s.doramas);
   const aliases = useCatalogStore((s) => s.actorAliases);
   const navigate = useCatalogStore((s) => s.navigate);
-  const { removeDorama } = useCatalogActions();
+  const { removeDorama, updateDorama } = useCatalogActions();
   const { rehydrateOne, busy: rehydrating, error: rehydrateError } = useRehydrate();
   const [enrichedMsg, setEnrichedMsg] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [yearDraft, setYearDraft] = useState("");
   const canonicalMap = useMemo(
     () => buildCanonicalIdMap(doramas, aliases),
     [doramas, aliases],
@@ -51,6 +54,25 @@ export function DoramaDetailScreen({ doramaId }: { doramaId: string }) {
     }
   };
 
+  const startEdit = () => {
+    setTitleDraft(dorama.title);
+    setYearDraft(dorama.year?.toString() ?? "");
+    setEditing(true);
+  };
+
+  const cancelEdit = () => setEditing(false);
+
+  const saveEdit = () => {
+    const yearRaw = yearDraft.trim();
+    const year = yearRaw === "" ? null : Number(yearRaw);
+    updateDorama({
+      ...dorama,
+      title: titleDraft.trim() || dorama.title,
+      year: year !== null && Number.isFinite(year) ? year : null,
+    });
+    setEditing(false);
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
       <button
@@ -76,12 +98,55 @@ export function DoramaDetailScreen({ doramaId }: { doramaId: string }) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <h2 className="text-2xl font-bold tracking-tight text-white">
-            {dorama.title}
-            {dorama.year ? (
-              <span className="ml-2 text-lg font-semibold text-gray-500">{dorama.year}</span>
-            ) : null}
-          </h2>
+          {editing ? (
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                aria-label="Título do dorama"
+                className="w-full rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-sm text-gray-100 outline-none focus:border-amber-500/30"
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="number"
+                  value={yearDraft}
+                  onChange={(e) => setYearDraft(e.target.value)}
+                  aria-label="Ano de estreia"
+                  placeholder="Ano"
+                  className="w-28 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-sm text-gray-100 outline-none focus:border-amber-500/30"
+                />
+                <button
+                  onClick={saveEdit}
+                  className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-950/30 px-4 py-2.5 text-sm font-medium text-emerald-400 transition-all duration-200 hover:border-emerald-500/40 hover:bg-emerald-950/50 hover:text-emerald-300"
+                >
+                  <Check className="h-4 w-4" /> Salvar
+                </button>
+                <button
+                  onClick={cancelEdit}
+                  className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-gray-400 transition-all duration-200 hover:border-white/[0.12] hover:text-gray-200"
+                >
+                  <X className="h-4 w-4" /> Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-2xl font-bold tracking-tight text-white">
+                {dorama.title}
+                {dorama.year ? (
+                  <span className="ml-2 text-lg font-semibold text-gray-500">{dorama.year}</span>
+                ) : null}
+              </h2>
+              <button
+                onClick={startEdit}
+                aria-label="Editar metadados do dorama"
+                className="flex shrink-0 items-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-xs font-medium text-gray-400 transition-all duration-200 hover:border-amber-500/30 hover:text-amber-400"
+              >
+                <Pencil className="h-3.5 w-3.5" /> Editar
+              </button>
+            </div>
+          )}
           {dorama.overview && (
             <p className="mt-3 text-sm leading-relaxed text-gray-400">{dorama.overview}</p>
           )}

@@ -1,6 +1,7 @@
 import { useCatalogStore } from "../store/catalogStore";
 import { writeV2Doc } from "../services/persistence";
 import { mergeDoramas, type ParsedBackup } from "../utils/backup";
+import { buildCanonicalIdMap, canonicalId } from "../utils/derivations";
 import type { DoramaRecord } from "../types/models";
 
 /**
@@ -65,5 +66,24 @@ export function useCatalogActions() {
     return writeV2Doc(merged, { actorAliases: aliases });
   };
 
-  return { addDorama, updateDorama, removeDorama, clearAll, mergeActorAlias, importDoramas };
+  /**
+   * Remove um ator (id canônico) de TODOS os doramas do catálogo — limpa as
+   * aparições indesejadas. Não-destrutivo em relação aos doramas: apenas
+   * remove os CastMember que casam com o id canônico. Persiste e retorna true.
+   */
+  const removeActorFromCatalog = (personId: string): boolean => {
+    const { doramas, actorAliases } = useCatalogStore.getState();
+    const map = buildCanonicalIdMap(doramas, actorAliases);
+    const next = doramas.map((d) => {
+      const filtered = d.cast.filter(
+        (m) => canonicalId(m, map, actorAliases) !== personId,
+      );
+      return filtered.length === d.cast.length ? d : { ...d, cast: filtered };
+    });
+    useCatalogStore.getState().setDoramas(next);
+    persist();
+    return true;
+  };
+
+  return { addDorama, updateDorama, removeDorama, clearAll, mergeActorAlias, importDoramas, removeActorFromCatalog };
 }

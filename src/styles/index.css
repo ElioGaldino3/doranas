@@ -16,3 +16,84 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Acessibilidade: anel de foco visível para navegação por teclado. */
+:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+.light :focus-visible {
+  outline-color: #2563eb;
+}
+
+/* Acessibilidade: respeita preferência por menos movimento. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Tema claro (.light no <html>). Overrides contidos: remapeiam as utilities
+ * de cor usadas pelo app para uma paleta clara. As telas continuam usando as
+ * classes "dark" como base; aqui só invertemos para o claro.
+ */
+.light {
+  color-scheme: light;
+}
+
+/* Fundos */
+.light .bg-gray-950 { background-color: #f1f5f9; }
+.light .bg-gray-950\/80 { background-color: rgba(241, 245, 249, 0.85); }
+.light .bg-gray-950\/95 { background-color: rgba(255, 255, 255, 0.97); }
+.light .bg-gray-900 { background-color: #ffffff; }
+.light .bg-white\/\[0\.03\] { background-color: #ffffff; }
+.light .bg-white\/\[0\.02\] { background-color: #f8fafc; }
+.light .bg-white\/\[0\.04\] { background-color: #f1f5f9; }
+.light .bg-white\/\[0\.06\] { background-color: #e2e8f0; }
+.light .bg-white\/\[0\.08\] { background-color: #e2e8f0; }
+.light .bg-amber-950\/20 { background-color: #fffbeb; }
+.light .bg-amber-950\/30 { background-color: #fffbeb; }
+.light .bg-sky-950\/20 { background-color: #e0f2fe; }
+.light .bg-sky-950\/30 { background-color: #e0f2fe; }
+.light .bg-sky-950\/40 { background-color: #bae6fd; }
+.light .bg-red-950\/20 { background-color: #fee2e2; }
+.light .bg-red-950\/30 { background-color: #fee2e2; }
+.light .bg-red-950\/40 { background-color: #fecaca; }
+.light .bg-emerald-950\/30 { background-color: #dcfce7; }
+
+/* Textos */
+.light .text-white { color: #0f172a; }
+.light .text-gray-100 { color: #1e293b; }
+.light .text-gray-200 { color: #334155; }
+.light .text-gray-300 { color: #475569; }
+.light .text-gray-400 { color: #475569; }
+.light .text-gray-500 { color: #475569; }
+.light .text-gray-600 { color: #64748b; }
+.light .text-amber-400 { color: #b45309; }
+.light .text-amber-400\/60 { color: #b45309; }
+.light .text-amber-400\/70 { color: #b45309; }
+.light .text-amber-400\/80 { color: #b45309; }
+.light .text-amber-400\/90 { color: #b45309; }
+.light .text-amber-500\/40 { color: #b45309; }
+.light .text-amber-500\/70 { color: #b45309; }
+.light .text-sky-400 { color: #0369a1; }
+.light .text-sky-300 { color: #0284c7; }
+.light .text-sky-500\/40 { color: #0369a1; }
+.light .text-sky-500\/70 { color: #0369a1; }
+.light .text-red-400 { color: #dc2626; }
+.light .text-red-400\/80 { color: #dc2626; }
+.light .text-emerald-400 { color: #059669; }
+
+/* Preenchimento de ícones */
+.light .fill-amber-400 { fill: #d97706; }
+
+/* Bordas */
+.light .border-white\/\[0\.04\] { border-color: #e2e8f0; }
+.light .border-white\/\[0\.06\] { border-color: #e2e8f0; }
+.light .border-white\/\[0\.12\] { border-color: #cbd5e1; }

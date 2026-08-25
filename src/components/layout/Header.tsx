@@ -1,7 +1,23 @@
-import type { ReactNode } from "react";
-import { BarChart3, Clapperboard, Film, Users } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { BarChart3, Clapperboard, Film, Moon, Sun, Users } from "lucide-react";
 import { useCatalogStore } from "../../store/catalogStore";
 import { SearchInput } from "../search/SearchInput";
+
+/** Alterna o tema claro/escuro e persiste a escolha em localStorage. */
+function useTheme() {
+  const [isLight, setIsLight] = useState(() =>
+    document.documentElement.classList.contains("light"),
+  );
+  useEffect(() => {
+    document.documentElement.classList.toggle("light", isLight);
+    try {
+      localStorage.setItem("theme", isLight ? "light" : "dark");
+    } catch {
+      /* ignore */
+    }
+  }, [isLight]);
+  return { isLight, toggle: () => setIsLight((v) => !v) };
+}
 
 function Tab({
   active,
@@ -33,6 +49,7 @@ function Tab({
 export function Header() {
   const screen = useCatalogStore((s) => s.screen);
   const navigate = useCatalogStore((s) => s.navigate);
+  const { isLight, toggle } = useTheme();
 
   const isDoramasActive = screen.name === "doramas" || screen.name === "dorama-detail";
   const isAtoresActive = screen.name === "atores" || screen.name === "ator-detail";
@@ -71,6 +88,16 @@ export function Header() {
             label="Estatísticas"
           />
         </nav>
+
+        <button
+          onClick={toggle}
+          aria-label={isLight ? "Alternar para o tema escuro" : "Alternar para o tema claro"}
+          aria-pressed={isLight}
+          title={isLight ? "Tema escuro" : "Tema claro"}
+          className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.03] text-gray-400 transition-all duration-200 hover:border-amber-500/30 hover:text-amber-400"
+        >
+          {isLight ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
       </div>
 
       <div className="min-w-0 flex-1">

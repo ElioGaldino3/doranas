@@ -6,6 +6,36 @@ Registre aqui toda informação nova e durável em vez de repetir no
 
 ## Registros
 
+### Edição de metadados, remoção de ator e tema claro (Fase 10) — 2026-08-25
+- **Edição de metadados do dorama** (`DoramaDetailScreen`): botão "Editar"
+  (lápis) alterna para inputs inline de título (text) e ano (number, vazio→
+  `null`); "Salvar" chama `updateDorama({...dorama, title, year})` (store +
+  `writeV2Doc`); "Cancelar" descarta. `title` vazio cai no título atual.
+- **Remover ator do catálogo** (`AtorDetailScreen` + `useCatalogActions`):
+  `removeActorFromCatalog(personId)` remove o ator (id canônico) de **todos**
+  os doramas (filtra `cast` por `canonicalId !== personId`), `setDoramas` +
+  `persist()` (não-destrutivo p/ os doramas, só limpa a aparição). Botão
+  "Remover" com `window.confirm`; após remover, navega para "atores". Cobre
+  "limpar aparição indesejada".
+- **Tema claro + acessibilidade**:
+  - Toggle sol/lua no `Header` (`useTheme`): aplica classe `.light` no
+    `<html>` e persiste em `localStorage["theme"]` ("light"/"dark").
+    `index.html` tem script inline que aplica o tema salvo **antes** do React
+    montar (evita flash).
+  - **Abordagem de tema**: overrides **contidos** em `src/styles/index.css`
+    sob `.light` — remapeiam as utilities de cor usadas pelo app
+    (`bg-gray-950`, `bg-white/[0.0x]`, `text-gray-*`/`amber-*`/`sky-*`/`red-*`/
+    `emerald-*`, `border-white/[0.0x]`, `fill-amber-400`) para uma paleta
+    clara. **Não** se converteu as telas para `dark:` variants — o default
+    continua escuro e o claro é sobreposto via CSS. Gotcha: se surgir uma nova
+    utility de cor nas telas, adicionar o override correspondente em
+    `index.css` (os seletores com `[` `]` e `/` precisam de escape no CSS:
+    `\[`, `\.`, `\/`).
+  - Acessibilidade: `lang="pt-BR"` no `<html>`; `:focus-visible` global com
+    anel (âmbar no escuro, azul no claro); `@media (prefers-reduced-motion:
+    reduce)` zera animações/transições; `aria-label`/`aria-pressed` no toggle
+    e nos botões de ícone (editar/remover).
+
 ### Pendências pós-Fase 4 — re-hidratação, cobertura, CJK e audit — 2026-08-25
 - **Re-hidratação Wikidata** (adds manuais são TMDB-only):
   - `enrichDoramaWithWikidata(dorama, qid, wikiRows)` (pura, idempotente) —

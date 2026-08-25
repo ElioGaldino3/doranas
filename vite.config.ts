@@ -10,5 +10,18 @@ export default defineConfig({
     setupFiles: ["./tests/setup.ts"],
     globals: true,
     css: false,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+      // Limiares globais (agregados) para evitar regressão de cobertura.
+      // Mantidos abaixo dos valores atuais (stmts ~81%, branches ~66%,
+      // funcs ~76%, lines ~79%) com margem para flutuação.
+      thresholds: {
+        statements: 75,
+        branches: 60,
+        functions: 70,
+        lines: 75,
+      },
+    },
   },
 });

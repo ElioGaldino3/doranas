@@ -1,39 +1,45 @@
-import { useState } from "react";
-import { Sidebar } from "./components/layout/Sidebar";
-import { GraphCanvas } from "./components/layout/GraphCanvas";
-import { Menu, X } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import { useAppInit } from "./hooks/useAppInit";
+import { useCatalogStore } from "./store/catalogStore";
+import { InitScreen } from "./components/init/InitScreen";
+import { Header } from "./components/layout/Header";
+import { DoramasScreen } from "./components/catalog/DoramasScreen";
+import { AtoresScreen } from "./components/catalog/AtoresScreen";
+import { DoramaDetailScreen } from "./components/catalog/DoramaDetailScreen";
+import { AtorDetailScreen } from "./components/catalog/AtorDetailScreen";
 
 export default function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const init = useAppInit();
+  const screen = useCatalogStore((s) => s.screen);
+
+  if (init.loading) {
+    return <InitScreen progress={init.progress} error={init.error} />;
+  }
 
   return (
-    <div className="flex h-dvh w-screen overflow-hidden bg-gray-950">
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed left-3 top-3 z-50 flex items-center justify-center rounded-xl border border-white/10 bg-black/60 p-2.5 text-gray-400 backdrop-blur-xl transition-all hover:bg-white/10 hover:text-gray-200 lg:hidden"
-      >
-        {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-      </button>
+    <div className="flex h-dvh w-screen flex-col overflow-hidden bg-gray-950">
+      <Header />
 
-      <div
-        className={`fixed inset-0 z-40 transition-all duration-300 lg:static lg:z-auto ${
-          sidebarOpen ? "visible opacity-100" : "invisible opacity-0 lg:visible lg:opacity-100"
-        }`}
-      >
+      {init.error && (
         <div
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-        <aside
-          className={`relative h-full w-72 overflow-y-auto border-r border-white/[0.06] bg-gray-950/95 backdrop-blur-xl transition-transform duration-300 ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-          }`}
+          style={{ animation: "fadeIn 0.2s ease-out" }}
+          className="flex items-center gap-2 border-b border-amber-500/20 bg-amber-950/30 px-5 py-2.5 text-xs leading-relaxed text-amber-400"
         >
-          <Sidebar onClose={() => setSidebarOpen(false)} />
-        </aside>
-      </div>
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          <span>{init.error}</span>
+        </div>
+      )}
 
-      <GraphCanvas />
+      <main className="flex-1 overflow-y-auto">
+        {screen.name === "doramas" && <DoramasScreen />}
+        {screen.name === "atores" && <AtoresScreen />}
+        {screen.name === "dorama-detail" && (
+          <DoramaDetailScreen doramaId={screen.doramaId} />
+        )}
+        {screen.name === "ator-detail" && (
+          <AtorDetailScreen personId={screen.personId} />
+        )}
+      </main>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
-import { searchSeries, findByImdbId, getSeriesCast } from "../services/tmdb";
-import type { SearchResult, CastResult } from "../types/tmdb";
+import { searchSeries, findByImdbId, getSeriesCast, getSeriesDetails } from "../services/tmdb";
+import type { SearchResult, CastResult, SeriesDetails } from "../types/tmdb";
 
 export function useTMDB() {
   const [loading, setLoading] = useState(false);
@@ -41,5 +41,19 @@ export function useTMDB() {
     }
   }, []);
 
-  return { search, fetchCast, loading, error };
+  const fetchDetails = useCallback(async (seriesId: number): Promise<SeriesDetails | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      return await getSeriesDetails(seriesId);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to fetch details";
+      setError(msg);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { search, fetchCast, fetchDetails, loading, error };
 }

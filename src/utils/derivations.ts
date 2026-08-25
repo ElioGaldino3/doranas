@@ -1,7 +1,7 @@
 import { PROTAGONIST_TOP_N } from "../types/models";
 import type { CastMember, DoramaRecord } from "../types/models";
 import type { WikidataCastRow } from "../types/wikidata";
-import type { CastResult } from "../types/tmdb";
+import type { CastResult, SeriesDetails } from "../types/tmdb";
 
 /** Define `protagonist` para um elenco baseado no billing order do TMDB.
  * Billing é 0-based (0 = primeiro); os `topN` primeiros são considerados
@@ -154,4 +154,34 @@ export function doramasOfPerson(
     }
   }
   return result;
+}
+
+/** Extrai o ano de uma data "YYYY-MM-DD" do TMDB (ou null). */
+function yearFromFirstAirDate(dateStr?: string | null): number | null {
+  if (!dateStr) return null;
+  const y = Number.parseInt(dateStr.slice(0, 4), 10);
+  return Number.isFinite(y) ? y : null;
+}
+
+/**
+ * Monta um DoramaRecord a partir dos detalhes + elenco do TMDB. Usado no
+ * fluxo de adição manual (busca): TMDB-only, sem resolução de Wikidata —
+ * `wikidataId` fica null até uma re-hidratação futura.
+ * `toImageUrl` resolve paths relativos (poster e perfil do elenco) para URL.
+ */
+export function doramaFromTmdb(
+  details: SeriesDetails,
+  cast: CastResult[],
+  toImageUrl?: (path: string) => string,
+): DoramaRecord {
+  return {
+    id: String(details.id),
+    title: details.name,
+    year: yearFromFirstAirDate(details.first_air_date),
+    overview: details.overview || undefined,
+    posterUrl: details.poster_path ? toImageUrl?.(details.poster_path) : undefined,
+    addedAt: Date.now(),
+    wikidataId: null,
+    cast: applyProtagonistHeuristic(tmdbCastToMembers(cast, toImageUrl)),
+  };
 }

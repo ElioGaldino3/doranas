@@ -15,6 +15,8 @@ interface CatalogState {
 
   setDoramas: (doramas: DoramaRecord[]) => void;
   addDorama: (dorama: DoramaRecord) => void;
+  removeDorama: (doramaId: string) => void;
+  clearAll: () => void;
   /** Troca a tela ativa; se não informada, mantém (uso interno de navegação). */
   navigate: (screen: Screen) => void;
 }
@@ -29,6 +31,11 @@ export const useCatalogStore = create<CatalogState>((set) => ({
       if (state.doramas.some((d) => d.id === dorama.id)) return state;
       return { doramas: [...state.doramas, dorama] };
     }),
+  removeDorama: (doramaId) =>
+    set((state) => ({
+      doramas: state.doramas.filter((d) => d.id !== doramaId),
+    })),
+  clearAll: () => set({ doramas: [] }),
 
   navigate: (screen) => set({ screen }),
 }));

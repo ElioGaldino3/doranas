@@ -83,4 +83,31 @@ progresso. Uma seção por tarefa ativa; remover ao concluir.
 
 ---
 
-## Tarefa ativa: Fase 3 — Migração automática v1→v2
+## ✅ Concluída: Fase 3 — Migração automática v1→v2
+
+**Concluída em**: 2026-08-25 | **Commit**: _(commit da Fase 3, abaixo)_
+
+### Entregue (aditivo — migração pronta, ainda não montada na UI)
+- `src/services/tmdb.ts`: +`getSeriesDetails` (`/tv/{id}`).
+- `src/services/wikidata.ts`: +`fetchCastForQids` (lote sequencial, retry 429
+  com `retryAfterMs`, pacing) — resolve pendência de pacing da Fase 1.
+- `src/services/persistence.ts`: detecção v1/v2, read/write v2, backup
+  `dorama_graph_backup_v1`, `StorageLike` injetável.
+- `src/services/migration.ts`: `migrateIfNeeded` com deps injetáveis + progresso
+  + persistência parcial. **Protege contra perda de dados** (gotchas na memória).
+- `src/hooks/useAppInit.ts`: hook que roda a migração real e povoa o
+  `catalogStore`. **Ainda NÃO montado na UI** — conectar na Fase 4 (a UI
+  legada usa a mesma chave e brigariam).
+- Testes: +7 persistence, +7 migration (total **46**).
+
+### Verificação (verde)
+- ✅ `npm test` (46), ✅ `npm run lint`, ✅ `npm run build`, ✅ `npx tsc -b`.
+
+### Pendências p/ Fase 4
+- Montar `useAppInit` no entry (`main.tsx`/`App`).
+- Remover UI do grafo; trocar `Sidebar`/`GraphCanvas` por telas do catálogo;
+  remover ignores de grafo do `eslint.config.js`.
+
+---
+
+## Tarefa ativa: Fase 4 — UI: telas Doramas/Atores + detalhes

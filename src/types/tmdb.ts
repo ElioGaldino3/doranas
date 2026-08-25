@@ -23,3 +23,12 @@ export interface FindResponse {
 export interface CreditsResponse {
   cast: CastResult[];
 }
+
+/** Resposta de GET /tv/{id} (o que a migração usa). */
+export interface SeriesDetails {
+  id: number;
+  name: string;
+  first_air_date: string | null;
+  overview: string;
+  poster_path: string | null;
+}

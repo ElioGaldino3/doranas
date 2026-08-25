@@ -118,12 +118,15 @@ doranas/
     │   └── search/
     │       └── SearchInput.tsx           # input de busca (título/IMDb)
     ├── hooks/
-    │   ├── useLocalStorageGraph.ts       # CRUD do grafo no localStorage
-    │   ├── useGraph.ts                   # ponte para useLocalStorageGraph
+    │   ├── useAppInit.ts               # roda no mount: migração v1→v2 c/ progresso (conctar na Fase 4)
+    │   ├── useLocalStorageGraph.ts       # CRUD do grafo no localStorage (legado, Fase 4)
+    │   ├── useGraph.ts                   # ponte para useLocalStorageGraph (legado, Fase 4)
     │   └── useTMDB.ts                    # search + fetchCast (com estados)
     ├── services/
-    │   ├── tmdb.ts                       # chamadas à API TMDB (search/find/credits)
-    │   └── wikidata.ts                   # cliente SPARQL do Wikidata (P161/P4983/P4985/P18)
+    │   ├── tmdb.ts                       # chamadas à API TMDB (search/find/credits/details)
+    │   ├── wikidata.ts                   # cliente SPARQL do Wikidata (P161/P4983/P4985/P18)
+    │   ├── persistence.ts                # leitura/escrita da chave v2, backup v1, detecção de versão
+    │   └── migration.ts                  # núcleo da migração v1→v2 (deeps injetáveis, progresso, parcial)
     ├── store/
     │   ├── graphStore.ts                 # Zustand: nós/links/estado do grafo (legado, Fase 4)
     │   └── catalogStore.ts               # Zustand v2: doramas + navegação (novo, sem persistência)

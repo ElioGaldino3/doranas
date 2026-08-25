@@ -6,6 +6,34 @@ Registre aqui toda informação nova e durável em vez de repetir no
 
 ## Registros
 
+### Migração v1→v2 + persistência (Fase 3) — 2026-08-25
+- **Chave**: `dorama_graph_data` (v2 = `{schemaVersion:2, doramas, migrationPending?,
+  lastError?, updatedAt}`). Backup v1 em `dorama_graph_backup_v1`.
+- **`persistence.ts`**: `isV1Doc`/`isV2Doc` (v1 = sem schemaVersion + `nodes[]`;
+  v2 = `schemaVersion===2` + `doramas[]`), `readV2Doc`/`writeV2Doc`/`backupV1`,
+  `storage` injetável (interface `StorageLike`, default localStorage) p/ teste.
+- **`migration.ts`**: `migrateIfNeeded({storage, fetchSeriesDetails,
+  fetchSeriesCast, resolveSeriesQids, fetchWikidataCast, toTvImage?,
+  onProgress?})`. Só para dorama v1. Pipeline por dorama: TMDB details+cast →
+  resolve QID → cast Wikidata → `mergeCast`+`applyProtagonistHeuristic` →
+  `DoramaRecord`. Persistência **progressiva** e **parcial** (`migrationPending`).
+- **Gotchas importantes (evitar perda de dados)**:
+  1. Nunca sobrescrever a chave v1 com um doc v2 vazio enquanto ainda há
+     doramas a processar — `persistPartial` só roda com `done.length > 0`.
+  2. Em falha de lote (ex.: quota no resolve/wikidata) **antes de processar
+     nada**, retornar `migrated:false` sem persistir — chave v1 intacta p/
+     retry.
+  3. `migrated: true` só quando `done.length > 0` (algo foi migrado de fato).
+  4. Backup criado **antes** de qualquer escrita.
+- **`useAppInit.ts`**: hook React (roda no mount) que executa a migração real
+  (TMDB+Wikidata reais) com progresso e povoa o `catalogStore`. **Ainda não
+  montado na UI — conectar na Fase 4** (a UI legada usa a mesma chave e
+  brigariam).
+- **TMDB**: adicionado `getSeriesDetails` (`/tv/{id}` → title/ano/overview/poster).
+- **Wikidata**: adicionado `fetchCastForQids` (lote **sequencial**, retry em
+  429 com `retryAfterMs`, pacing 300ms) — resolve a pendência de pacing da
+  Fase 1.
+
 ### Modelo v2 + derivações + catalogStore (Fase 2) — 2026-08-25
 - **Modelo v2** (`src/types/models.ts`): `DoramaRecord` (id TMDB, título, ano,
   overview, poster, addedAt, wikidataId, cast), `CastMember` (personId, name,

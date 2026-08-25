@@ -166,3 +166,65 @@ SELECT ?show ?actor ?actorLabel ?tmdbPerson ?img WHERE {
 function escapeLiteral(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
+
+/** Aguarda `ms` (default 0). Usado para respeitar Retry-After e pacing. */
+function delay(ms: number): Promise<void> {
+  if (ms <= 0) return Promise.resolve();
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+interface BatchOptions extends SparqlOptions {
+  /** Máximo de tentativas por QID em falha 429/timeout. Default 3. */
+  maxRetries?: number;
+  /** Intervalo base entre requisições (pacing). Default 300ms. */
+  paceMs?: number;
+  onStart?: (index: number, total: number) => void;
+}
+
+/**
+ * Busca o elenco de vários QIDs de forma SEQUENCIAL (1 por vez), respeitando
+ * o teto de 5 queries paralelas/IP do WDQS e com retry em 429 (Retry-After)
+ * e em erro transitório. Retorna um map qid → cast.
+ *
+ * Devido à falta de pacing no `sparqlQuery` (Fase 1), este helper é a forma
+ * recomendada de consumo em lote (ex.: migração).
+ */
+export async function fetchCastForQids(
+  qids: string[],
+  opts: BatchOptions = {},
+): Promise<Map<string, WikidataCastRow[]>> {
+  const maxRetries = opts.maxRetries ?? 3;
+  const paceMs = opts.paceMs ?? 300;
+  const result = new Map<string, WikidataCastRow[]>();
+
+  for (let i = 0; i < qids.length; i++) {
+    const qid = qids[i];
+    opts.onStart?.(i, qids.length);
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        result.set(qid, await fetchCastForQid(qid, opts));
+        break;
+      } catch (e) {
+        lastError = e;
+        if (e instanceof WikidataHttpError) {
+          // 429 tem Retry-After; outros 4xx/5xx HTTP também espera um pouco.
+          const wait = e.retryAfterMs ?? 500 * (attempt + 1);
+          await delay(wait);
+        } else {
+          // erro de rede: backoff simples
+          await delay(500 * (attempt + 1));
+        }
+      }
+    }
+    if (!result.has(qid)) {
+      // falhou em todas as tentativas — propaga o último erro
+      throw lastError;
+    }
+
+    if (i < qids.length - 1) await delay(paceMs);
+  }
+
+  return result;
+}

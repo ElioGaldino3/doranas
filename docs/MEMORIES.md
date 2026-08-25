@@ -6,6 +6,41 @@ Registre aqui toda informação nova e durável em vez de repetir no
 
 ## Registros
 
+### UI do catálogo v2 + remoção do grafo (Fase 4) — 2026-08-25
+- **Init no entry**: `App` chama `useAppInit` e **gating** — enquanto
+  `loading`, renderiza `InitScreen` (splash com barra de progresso `done/total`
+  durante migração). Erro parcial vira **banner** (não bloqueia o uso).
+- **Navegação por `screen`** (sem router): `Header` (logo + tabs Doramas/Atores
+  + `SearchInput`) + telas em `src/components/catalog/`: `DoramasScreen`
+  (cards com poster/ano/nº atores/badge protagonistas + Exportar PDF + Limpar
+  Dados), `AtoresScreen` (`actorsByAppearance`), `DoramaDetailScreen` (sinopse +
+  elenco com badge protagonista + "também em…" via `otherDoramasOf` + remover),
+  `AtorDetailScreen` (`doramasOfPerson` ordenado por ano desc).
+- **Add manual = TMDB-only**: busca → `getSeriesDetails` + `getSeriesCast` →
+  `doramaFromTmdb(details, cast, imageUrl)` → `addDorama` + persistir.
+  **Sem Wikidata** no fluxo interativo (evita latência/rate-limit);
+  `wikidataId` fica `null` até re-hidratação futura. A migração v1→v2 mantém o
+  enriquecimento completo (TMDB ⊕ Wikidata).
+- **Persistência fora do store** (mantém decisão da Fase 2): `useCatalogActions`
+  é a ponte store ↔ `writeV2Doc` (`addDorama`/`removeDorama`/`clearAll`). O
+  `catalogStore` ganhou `removeDorama` e `clearAll` (puros).
+- **V1 types sobrevivem**: `V1Node`/`V1Link`/`V1GraphDocument` agora vivem em
+  `src/services/persistence.ts` (a migração ainda lê dados v1). `types/graph.ts`
+  e `types/d3-force-3d.d.ts` foram **deletados**.
+- **Grafo legado removido**: ForceGraph/DoramaDetailsDrawer/GraphCanvas/Sidebar,
+  `graphStore`, `useLocalStorageGraph`/`useGraph`, `graphTransform`,
+  `tests/graphStore.test.ts`. Dep `react-force-graph-2d` removida (d3-force-3d
+  era transitiva). **Ignores de grafo removidos do `eslint.config.js`** — todo o
+  `src/` é lintado agora.
+- **PDF**: `exportGraphToPdf` (adaptador Node/Link) removido; a UI chama
+  `buildDoramaPdf` direto com `actorCount = dorama.cast.length` — resolve a
+  divergência registrada na Fase 0 (fonte de contagem do modelo v2).
+- **`thumbUrl`** (`src/utils/images.ts`): troca `w500 → w200` em URLs TMDB para
+  miniaturas (perfis do elenco); `imageUrl` mantém `w500` para posters/detalhes.
+- **Gotcha de teste**: async flows de busca/add disparam warnings de `act(...)`
+  com `fireEvent`; usar `userEvent.setup()` (`@testing-library/user-event`)
+  que encapsula em `act`.
+
 ### Migração v1→v2 + persistência (Fase 3) — 2026-08-25
 - **Chave**: `dorama_graph_data` (v2 = `{schemaVersion:2, doramas, migrationPending?,
   lastError?, updatedAt}`). Backup v1 em `dorama_graph_backup_v1`.

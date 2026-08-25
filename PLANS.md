@@ -110,4 +110,42 @@ progresso. Uma seção por tarefa ativa; remover ao concluir.
 
 ---
 
-## Tarefa ativa: Fase 4 — UI: telas Doramas/Atores + detalhes
+## ✅ Concluída: Fase 4 — UI: telas Doramas/Atores + detalhes
+
+**Concluída em**: 2026-08-25 | **Commits**: `feat(ui)`, `refactor(ui)`,
+`test(ui)` e docs (abaixo).
+
+### Entregue
+- **Init no entry**: `App` monta `useAppInit` com gating — splash
+  (`InitScreen`) com barra de progresso durante a migração; erro parcial vira
+  banner (não bloqueia).
+- **Layout novo**: `Header` substitui o `Sidebar` (logo + tabs Doramas/Atores +
+  busca global responsiva).
+- **Telas do catálogo** (`src/components/catalog/`): `DoramasScreen` (grade de
+  cards + Exportar PDF + Limpar Dados), `AtoresScreen` (`actorsByAppearance`),
+  `DoramaDetailScreen` (sinopse + elenco + "também em…" via `otherDoramasOf` +
+  remover), `AtorDetailScreen` (`doramasOfPerson`).
+- **Busca/add v2**: `SearchInput` reescrito (dedup, busca details+cast,
+  monta record via `doramaFromTmdb`); `useTMDB` ganhou `fetchDetails`.
+- **Store**: `catalogStore` + `removeDorama` e `clearAll`; persistência no
+  **`useCatalogActions`** (ponte store ↔ `writeV2Doc`).
+- **Remoção do grafo**: deletados ForceGraph/Drawer/GraphCanvas/Sidebar,
+  graphStore, useLocalStorageGraph/useGraph, graphTransform, types/graph,
+  d3-force-3d.d.ts e tests/graphStore. `react-force-graph-2d` saiu do
+  package.json; ignores de grafo removidos do `eslint.config.js`.
+- **V1 types locais** em `persistence.ts` (migração ainda lê dados v1).
+- **PDF**: adaptador `exportGraphToPdf` removido; UI usa `buildDoramaPdf` com
+  `actorCount = dorama.cast.length`.
+- Testes: +doramaFromTmdb, +removeDorama/clearAll, +9 RTL (App + SearchInput).
+  Total: **57**.
+
+### Decisões relevantes (detalhes em `docs/MEMORIES.md`)
+- Add manual é **TMDB-only** (sem Wikidata no fluxo interativo); `wikidataId`
+  fica null até re-hidratação futura.
+- Persistência continua **fora do store** (decisão da Fase 2 mantida).
+
+### Verificação (verde)
+- ✅ `npm test` (57), ✅ `npm run lint` (sem ignores), ✅ `npm run build`,
+  ✅ `npx tsc -b`.
+
+---

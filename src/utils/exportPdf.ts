@@ -181,8 +181,9 @@ export function buildDoramaPdf(doramas: ExportDorama[]): jsPDF {
  */
 export function exportGraphToPdf(nodes: Node[], links: Link[]): void {
   const doramaNodes = nodes.filter((n) => n.group === "dorama");
+  // Comportamento tolerante (compat com o Sidebar v1): sem doramas, não faz nada.
   if (doramaNodes.length === 0) {
-    throw new Error("Nenhum dorama para exportar");
+    return;
   }
 
   // Conta atores por dorama considerando links no formato do grafo v1

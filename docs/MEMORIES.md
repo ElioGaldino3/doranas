@@ -6,6 +6,17 @@ Registre aqui toda informação nova e durável em vez de repetir no
 
 ## Registros
 
+### Elenco ampliado pelo TMDB
+
+- A inclusão de doramas combina os créditos regulares e os
+  [créditos agregados](https://developer.themoviedb.org/reference/tv-series-aggregate-credits)
+  pelo ID TMDB da pessoa. Quando há créditos regulares, eles definem a
+  ordem de protagonismo.
+- **Buscar mais atores**, nos detalhes, consulta também os convidados dos
+  episódios retornados nos [detalhes de cada temporada](https://developer.themoviedb.org/reference/tv-season-details).
+  A busca preserva os membros existentes e respeita os aliases do catálogo.
+  Falhas de uma consulta permitem aproveitar as demais e aparecem no resultado.
+
 ### Edição de metadados, remoção de ator e tema claro (Fase 10) — 2026-08-25
 - **Edição de metadados do dorama** (`DoramaDetailScreen`): botão "Editar"
   (lápis) alterna para inputs inline de título (text) e ano (number, vazio→

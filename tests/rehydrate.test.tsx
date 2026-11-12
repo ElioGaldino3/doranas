@@ -9,6 +9,7 @@ import {
   fetchCastForQids,
 } from "../src/services/wikidata";
 import type { WikidataCastRow } from "../src/types/wikidata";
+import { STORAGE_KEY } from "../src/services/persistence";
 
 // Mocka só o serviço de rede; `rehydrateDoramas` (real) desce até esses dois.
 vi.mock("../src/services/wikidata", async (importOriginal) => {
@@ -50,10 +51,44 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
   localStorage.clear();
 });
 
 describe("re-hidratação (UI)", () => {
+  it("busca convidados e créditos agregados novamente em um dorama já enriquecido", async () => {
+    const user = userEvent.setup();
+    useCatalogStore.setState({ doramas: [dorama("42", "Q42")], actorAliases: { "1": "p1" } });
+    const actor = (id: number, name: string) => ({ id, name, profile_path: null, character: "" });
+    const guest = actor(3, "Ator convidado");
+    const fetchCast = vi.fn(async (url: string) => {
+      const path = new URL(url).pathname;
+      const responses: Record<string, unknown> = {
+        "/3/tv/42/credits": { cast: [actor(1, "Ator Base")] },
+        "/3/tv/42/aggregate_credits": { cast: [actor(1, "Ator Base"), actor(2, "Ator recorrente")] },
+        "/3/tv/42": { seasons: [{ season_number: 1 }, { season_number: 2 }] },
+        "/3/tv/42/season/1": { episodes: [{ guest_stars: [guest] }, { guest_stars: [guest] }] },
+      };
+      return { ok: path in responses, json: async () => responses[path] };
+    });
+    vi.stubGlobal("fetch", fetchCast);
+    render(<DoramaDetailScreen doramaId="42" />);
+
+    const button = screen.getByRole("button", { name: "Buscar mais atores" });
+    await user.click(button);
+    expect(await screen.findByText(/2 atores adicionados.*Parte da consulta/)).toBeInTheDocument();
+    expect(screen.getByText("Ator recorrente")).toBeInTheDocument();
+    expect(screen.getByText("Ator convidado")).toBeInTheDocument();
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
+    expect(saved.doramas[0].cast.map((member: { personId: string; protagonist: boolean }) =>
+      [member.personId, member.protagonist],
+    )).toEqual([["p1", true], ["2", false], ["3", false]]);
+
+    await user.click(button);
+    expect(await screen.findByText(/Nenhum ator novo encontrado/)).toBeInTheDocument();
+    expect(fetchCast).toHaveBeenCalledTimes(10);
+  });
+
   it("detalhe: enriquece o dorama via botão e some ao concluir", async () => {
     const user = userEvent.setup();
     useCatalogStore.setState({ doramas: [dorama("42")] });

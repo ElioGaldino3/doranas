@@ -3,7 +3,8 @@ import { ArrowLeft, Check, Film, Loader2, Pencil, Sparkles, Star, Trash2, X } fr
 import { useCatalogStore } from "../../store/catalogStore";
 import { useCatalogActions } from "../../hooks/useCatalogActions";
 import { useRehydrate } from "../../hooks/useRehydrate";
-import { buildCanonicalIdMap, canonicalId, otherDoramasOf } from "../../utils/derivations";
+import { getExpandedSeriesCast, imageUrl } from "../../services/tmdb";
+import { applyProtagonistHeuristic, buildCanonicalIdMap, canonicalId, otherDoramasOf, tmdbCastToMembers } from "../../utils/derivations";
 import { thumbUrl } from "../../utils/images";
 import type { CastMember, DoramaRecord } from "../../types/models";
 
@@ -15,6 +16,8 @@ export function DoramaDetailScreen({ doramaId }: { doramaId: string }) {
   const { removeDorama, updateDorama } = useCatalogActions();
   const { rehydrateOne, busy: rehydrating, error: rehydrateError } = useRehydrate();
   const [enrichedMsg, setEnrichedMsg] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshStatus, setRefreshStatus] = useState("");
   const [editing, setEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const [yearDraft, setYearDraft] = useState("");
@@ -58,6 +61,40 @@ export function DoramaDetailScreen({ doramaId }: { doramaId: string }) {
     setTitleDraft(dorama.title);
     setYearDraft(dorama.year?.toString() ?? "");
     setEditing(true);
+  };
+
+  const refreshCast = async () => {
+    setRefreshing(true);
+    setRefreshStatus("");
+    try {
+      const result = await getExpandedSeriesCast(Number(dorama.id));
+      const { doramas, actorAliases } = useCatalogStore.getState();
+      const current = doramas.find((record) => record.id === dorama.id);
+      if (!current) return;
+
+      const candidates = applyProtagonistHeuristic(tmdbCastToMembers(result.cast, imageUrl));
+      const map = buildCanonicalIdMap(doramas, actorAliases);
+      const seen = new Set(current.cast.map((member) => canonicalId(member, map, actorAliases)));
+      const additions = candidates.filter((member) => {
+        const id = canonicalId(member, map, actorAliases);
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+      if (additions.length && !updateDorama({ ...current, cast: [...current.cast, ...additions] })) {
+        throw new Error("Falha ao salvar o elenco no catálogo.");
+      }
+      const message = additions.length === 0
+        ? "Nenhum ator novo encontrado."
+        : additions.length === 1
+          ? "1 ator adicionado ao elenco."
+          : `${additions.length} atores adicionados ao elenco.`;
+      setRefreshStatus(result.partial ? `${message} Parte da consulta ao TMDB falhou.` : message);
+    } catch (error) {
+      setRefreshStatus(error instanceof Error ? error.message : "Falha ao atualizar o elenco.");
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const cancelEdit = () => setEditing(false);
@@ -154,7 +191,7 @@ export function DoramaDetailScreen({ doramaId }: { doramaId: string }) {
             {dorama.wikidataId == null && (
               <button
                 onClick={handleEnrich}
-                disabled={rehydrating}
+                disabled={rehydrating || refreshing}
                 className="flex items-center gap-2 rounded-xl border border-sky-500/20 bg-sky-950/30 px-4 py-2.5 text-sm font-medium text-sky-400 transition-all duration-200 hover:border-sky-500/40 hover:bg-sky-950/50 hover:text-sky-300 disabled:opacity-40"
               >
                 {rehydrating ? (
@@ -192,9 +229,23 @@ export function DoramaDetailScreen({ doramaId }: { doramaId: string }) {
       </div>
 
       <section className="mt-8">
-        <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-gray-500">
-          Elenco · {dorama.cast.length} {dorama.cast.length === 1 ? "ator" : "atores"}
-        </h3>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-gray-500">
+            Elenco · {dorama.cast.length} {dorama.cast.length === 1 ? "ator" : "atores"}
+          </h3>
+          <button
+            type="button"
+            onClick={refreshCast}
+            disabled={refreshing || rehydrating}
+            className="flex items-center gap-2 rounded-xl border border-sky-500/20 bg-sky-950/30 px-4 py-2.5 text-sm font-medium text-sky-400 hover:border-sky-500/40 disabled:opacity-40"
+          >
+            {refreshing && <Loader2 className="h-4 w-4 animate-spin" />}
+            {refreshing ? "Buscando atores…" : "Buscar mais atores"}
+          </button>
+        </div>
+        <p role="status" className={refreshStatus ? "mb-4 text-sm text-gray-400" : "sr-only"}>
+          {refreshStatus}
+        </p>
         <div className="grid gap-3 sm:grid-cols-2">
           {dorama.cast.map((member) => (
             <CastRow

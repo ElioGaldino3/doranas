@@ -29,6 +29,7 @@ export function useRehydrate() {
         const result = await rehydrateDoramas(targets, {
           resolveSeriesQids: (tmdbIds) => resolveSeriesQidsByTmdbIds(tmdbIds),
           fetchWikidataCast: (qids) => fetchCastForQids(qids),
+          getCurrent: (id) => useCatalogStore.getState().doramas.find((d) => d.id === id),
           onProgress: (done, total) => setProgress({ done, total }),
         });
 

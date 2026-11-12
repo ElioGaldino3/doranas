@@ -10,6 +10,7 @@ export interface CastResult {
   name: string;
   profile_path: string | null;
   character: string;
+  supporting?: boolean;
 }
 
 export interface SearchResponse {
@@ -31,4 +32,5 @@ export interface SeriesDetails {
   first_air_date: string | null;
   overview: string;
   poster_path: string | null;
+  seasons?: { season_number: number }[];
 }

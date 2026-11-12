@@ -30,7 +30,7 @@ export function tmdbCastToMembers(
     personId: String(c.id),
     name: c.name,
     profileImgUrl: c.profile_path ? toProfileUrl?.(c.profile_path) : undefined,
-    order: index,
+    order: c.supporting ? null : index,
     protagonist: false,
   }));
 }

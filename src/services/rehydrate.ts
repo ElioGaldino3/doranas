@@ -18,6 +18,7 @@ export interface RehydrateDeps {
   resolveSeriesQids: (tmdbIds: string[]) => Promise<TmdbToQidMap>;
   fetchWikidataCast: (qids: string[]) => Promise<Map<string, WikidataCastRow[]>>;
   onProgress?: (done: number, total: number) => void;
+  getCurrent?: (id: string) => DoramaRecord | undefined;
 }
 
 export interface RehydrateResult {
@@ -58,7 +59,9 @@ export async function rehydrateDoramas(
     deps.onProgress?.(index, pending.length);
     const qid = qidMap[d.id];
     if (!qid) return; // sem QID no Wikidata — mantém como está
-    const enriched = enrichDoramaWithWikidata(d, qid, wikiCast.get(qid) ?? []);
+    const current = deps.getCurrent ? deps.getCurrent(d.id) : d;
+    if (!current) return;
+    const enriched = enrichDoramaWithWikidata(current, qid, wikiCast.get(qid) ?? []);
     updatedById.set(d.id, enriched);
     updated.push(enriched);
   });

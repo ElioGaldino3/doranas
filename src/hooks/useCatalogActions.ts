@@ -22,9 +22,12 @@ export function useCatalogActions() {
     persist();
   };
 
-  const updateDorama = (dorama: DoramaRecord): void => {
-    useCatalogStore.getState().updateDorama(dorama);
-    persist();
+  const updateDorama = (dorama: DoramaRecord): boolean => {
+    const { doramas, actorAliases, updateDorama } = useCatalogStore.getState();
+    const next = doramas.map((current) => current.id === dorama.id ? dorama : current);
+    if (!writeV2Doc(next, { actorAliases })) return false;
+    updateDorama(dorama);
+    return true;
   };
 
   const removeDorama = (doramaId: string): void => {
